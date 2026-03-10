@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Installation — Latent-XAI</title>
+  <meta name="description" content="Installation instructions for the Latent-XAI library." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<button class="sidebar-toggle" id="sidebar-toggle" title="Toggle navigation">☰</button>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<nav class="sidebar" role="navigation" aria-label="Main navigation">
+  <a class="sidebar-logo" href="../index.html">
+    <div class="sidebar-logo-icon">🧬</div>
+    <div class="sidebar-logo-text">Latent-XAI<span>v1.0 · documentation</span></div>
+  </a>
+  <div class="sidebar-search">
+    <input type="search" placeholder="Search docs…" aria-label="Search documentation" />
+  </div>
+  <div class="sidebar-nav">
+    <div class="sidebar-section-title">General</div>
+    <a href="index.html">🏠 Overview</a>
+    <a href="installation.html" class="active">📦 Installation</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">API Reference</div>
+    <a href="api/lxai.html">🔬 lxai (core class)</a>
+    <a href="api/plotting.html">📊 plotting</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">Tutorials</div>
+    <a href="tutorials/swiss_roll.html">🌀 Swiss Roll</a>
+    <a href="tutorials/twin_peaks.html">⛰️ Twin Peaks</a>
+    <a href="tutorials/alanine_dipeptide.html">🧪 Alanine Dipeptide</a>
+    <a href="tutorials/pancreas.html">🔬 Pancreatic scRNA-seq</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">About</div>
+    <a href="https://github.com" target="_blank" rel="noopener">🔗 GitHub ↗</a>
+  </div>
+</nav>
+
+<div class="main-wrapper">
+  <div class="content-header">
+    <div class="header-links">
+      <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+      <a href="#" target="_blank" rel="noopener">Paper</a>
+    </div>
+    <span class="version-badge">v1.0 stable</span>
+    <button class="theme-toggle" id="theme-toggle" title="Toggle dark mode">🌙</button>
+  </div>
+
+  <div class="content">
+    <div class="breadcrumb">
+      <a href="index.html">Latent-XAI</a>
+      <span class="breadcrumb-sep">›</span>
+      <span>Installation</span>
+    </div>
+
+    <h1 id="installation">Installation</h1>
+    <p>
+      Latent-XAI is a Python library that requires <strong>PyTorch</strong> for Jacobian computation
+      and <strong>CuPy</strong> for GPU-accelerated eigendecomposition. A CUDA-capable GPU is
+      strongly recommended for large datasets.
+    </p>
+
+    <div class="admonition warning">
+      <div class="admonition-title">⚠️ GPU Requirement</div>
+      <p>
+        Latent-XAI uses <code>cupy</code> for sparse eigendecomposition
+        (<code>cupy.sparse.linalg.eigsh</code>). A CUDA-capable NVIDIA GPU is required.
+        The paper experiments were run on an <strong>NVIDIA H100 NVL GPU</strong>.
+      </p>
+    </div>
+
+    <h2 id="requirements">Requirements</h2>
+    <table class="param-table">
+      <thead>
+        <tr><th>Package</th><th>Version</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>torch</code></td><td>≥ 2.0</td><td>Jacobian computation via <code>torch.func.jacrev</code> + <code>vmap</code></td></tr>
+        <tr><td><code>cupy-cuda12x</code></td><td>≥ 12.0</td><td>GPU sparse eigendecomposition of the Connection Laplacian</td></tr>
+        <tr><td><code>numpy</code></td><td>≥ 1.24</td><td>Numerical arrays, SVD, sparse matrix ops</td></tr>
+        <tr><td><code>scipy</code></td><td>≥ 1.10</td><td>Sparse matrices, distance computation</td></tr>
+        <tr><td><code>scikit-learn</code></td><td>≥ 1.2</td><td>KNN graph construction, local PCA fallback</td></tr>
+        <tr><td><code>pandas</code></td><td>≥ 1.5</td><td>Data manipulation utilities</td></tr>
+        <tr><td><code>matplotlib</code></td><td>≥ 3.7</td><td>Plotting vector fields</td></tr>
+        <tr><td><code>tqdm</code></td><td>any</td><td>Progress bars</td></tr>
+        <tr><td><code>dill</code></td><td>any</td><td>Serialisation (saving <code>lxai</code> objects)</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="install-from-source">Install from Source</h2>
+    <p>Clone the repository and install the package in development mode:</p>
+    <div class="code-block-wrapper">
+      <div class="code-block-header">
+        <span class="code-lang-badge">bash</span>
+        <button class="copy-btn">⧉ Copy</button>
+      </div>
+      <pre><code><span class="tok-cm"># Clone the repository</span>
+git clone https://github.com/yourusername/latentxai.git
+cd latentxai
+
+<span class="tok-cm"># Install in editable mode</span>
+pip install -e .
+
+<span class="tok-cm"># Or install dependencies manually</span>
+pip install torch scipy scikit-learn pandas matplotlib tqdm dill</code></pre>
+    </div>
+
+    <h2 id="install-cupy">Installing CuPy (GPU)</h2>
+    <p>
+      CuPy must be installed matching your CUDA version.
+      Check your CUDA version with <code>nvcc --version</code> or <code>nvidia-smi</code>.
+    </p>
+    <div class="code-block-wrapper">
+      <div class="code-block-header">
+        <span class="code-lang-badge">bash</span>
+        <button class="copy-btn">⧉ Copy</button>
+      </div>
+      <pre><code><span class="tok-cm"># CUDA 12.x</span>
+pip install cupy-cuda12x
+
+<span class="tok-cm"># CUDA 11.x</span>
+pip install cupy-cuda11x
+
+<span class="tok-cm"># Verify CuPy installation</span>
+python -c <span class="tok-str">"import cupy; print(cupy.__version__, cupy.cuda.runtime.runtimeGetVersion())"</span></code></pre>
+    </div>
+
+    <h2 id="conda">Conda Environment (Recommended)</h2>
+    <p>For a clean reproducible environment, we recommend conda:</p>
+    <div class="code-block-wrapper">
+      <div class="code-block-header">
+        <span class="code-lang-badge">bash</span>
+        <button class="copy-btn">⧉ Copy</button>
+      </div>
+      <pre><code>conda create -n latentxai python=3.10
+conda activate latentxai
+
+<span class="tok-cm"># PyTorch with CUDA 12</span>
+conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
+
+<span class="tok-cm"># Scientific stack</span>
+conda install numpy scipy scikit-learn pandas matplotlib tqdm
+pip install dill cupy-cuda12x</code></pre>
+    </div>
+
+    <h2 id="verify">Verify Installation</h2>
+    <div class="code-block-wrapper">
+      <div class="code-block-header">
+        <span class="code-lang-badge">python</span>
+        <button class="copy-btn">⧉ Copy</button>
+      </div>
+      <pre><code><span class="tok-kw">import</span> torch
+<span class="tok-kw">import</span> cupy <span class="tok-kw">as</span> cp
+<span class="tok-kw">from</span> latentxai <span class="tok-kw">import</span> lxai
+
+<span class="tok-cm"># Check GPU availability</span>
+print(<span class="tok-str">f"PyTorch CUDA: {torch.cuda.is_available()}"</span>)
+print(<span class="tok-str">f"CuPy devices: {cp.cuda.runtime.getDeviceCount()}"</span>)
+
+<span class="tok-cm"># Create a minimal lxai object (decoder='PCA' for CPU-only testing)</span>
+model <span class="tok-op">=</span> lxai(decoder<span class="tok-op">=</span><span class="tok-str">'PCA'</span>, n_neighbors<span class="tok-op">=</span><span class="tok-num">10</span>)
+print(<span class="tok-str">"✓ Latent-XAI imported successfully"</span>)</code></pre>
+    </div>
+
+    <div class="admonition note">
+      <div class="admonition-title">ℹ️ Note — CPU Fallback</div>
+      <p>
+        Setting <code>decoder='PCA'</code> uses local PCA for tangent space estimation instead of the decoder Jacobian.
+        This avoids the need for a GPU-accelerated decoder but still requires CuPy for the eigendecomposition step.
+      </p>
+    </div>
+
+    <h2 id="optional-deps">Optional Dependencies</h2>
+    <table class="param-table">
+      <thead>
+        <tr><th>Package</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>graphvelo</code></td><td>Required for <code>GraphVelo.train()</code> (velocity projection for latent dim &gt; 2)</td></tr>
+        <tr><td><code>scanpy</code></td><td>For scRNA-seq preprocessing and UMAP visualisation</td></tr>
+        <tr><td><code>cellrank</code></td><td>For CellRank velocity comparison (Pancreas tutorial)</td></tr>
+        <tr><td><code>anndata</code></td><td>For loading <code>.h5ad</code> scRNA-seq datasets</td></tr>
+      </tbody>
+    </table>
+
+    <div class="content-footer">
+      <span>Next: <a href="api/lxai.html">API Reference →</a></span>
+      <span><a href="https://github.com" target="_blank" rel="noopener">GitHub ↗</a></span>
+    </div>
+  </div>
+</div>
+
+<aside class="toc-sidebar" aria-label="On this page">
+  <div class="toc-title">On this page</div>
+  <ul class="toc-list">
+    <li><a href="#requirements">Requirements</a></li>
+    <li><a href="#install-from-source">Install from Source</a></li>
+    <li><a href="#install-cupy">Installing CuPy</a></li>
+    <li><a href="#conda">Conda Environment</a></li>
+    <li><a href="#verify">Verify Installation</a></li>
+    <li><a href="#optional-deps">Optional Dependencies</a></li>
+  </ul>
+</aside>
+
+<script src="js/main.js"></script>
+</body>
+</html>
