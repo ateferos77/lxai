@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pancreatic scRNA-seq Tutorial — Latent-XAI</title>
+  <meta name="description" content="Tutorial: applying Latent-XAI to pancreatic scRNA-seq data to delineate Alpha/Beta differentiation lineages." />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+<button class="sidebar-toggle" id="sidebar-toggle">☰</button>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<nav class="sidebar" role="navigation">
+  <a class="sidebar-logo" href="../index.html">
+    <div class="sidebar-logo-icon">🧬</div>
+    <div class="sidebar-logo-text">Latent-XAI<span>v1.0 · documentation</span></div>
+  </a>
+  <div class="sidebar-search"><input type="search" placeholder="Search docs…" /></div>
+  <div class="sidebar-nav">
+    <div class="sidebar-section-title">General</div>
+    <a href="../index.html">🏠 Overview</a>
+    <a href="../installation.html">📦 Installation</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">API Reference</div>
+    <a href="../api/lxai.html">🔬 lxai (core class)</a>
+    <a href="../api/plotting.html">📊 plotting</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">Tutorials</div>
+    <a href="swiss_roll.html">🌀 Swiss Roll</a>
+    <a href="twin_peaks.html">⛰️ Twin Peaks</a>
+    <a href="alanine_dipeptide.html">🧪 Alanine Dipeptide</a>
+    <a href="pancreas.html" class="active">🔬 Pancreatic scRNA-seq</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">About</div>
+    <a href="https://github.com" target="_blank" rel="noopener">🔗 GitHub ↗</a>
+  </div>
+</nav>
+
+<div class="main-wrapper">
+  <div class="content-header">
+    <div class="header-links"><a href="https://github.com" target="_blank">GitHub</a></div>
+    <span class="version-badge">v1.0 stable</span>
+    <button class="theme-toggle" id="theme-toggle">🌙</button>
+  </div>
+
+  <div class="content">
+    <div class="breadcrumb">
+      <a href="../index.html">Latent-XAI</a><span class="breadcrumb-sep">›</span>
+      <span>Tutorials</span><span class="breadcrumb-sep">›</span>
+      <span>Pancreatic scRNA-seq</span>
+    </div>
+
+    <h1 id="pancreas">🔬 Tutorial 4: Pancreatic scRNA-seq</h1>
+    <p>
+      <span class="tag tag-blue">scRNA-seq</span>
+      <span class="tag tag-purple">Real-World Biological Data</span>
+      <span class="tag">~3000 genes · 2100 cells</span>
+      <span class="tag">4D latent</span>
+    </p>
+    <p style="margin-top:12px">
+      Our most complex benchmark: a real pancreatic differentiation dataset. We use <strong>only the
+      spliced gene counts</strong> (no velocity information) and demonstrate that Latent-XAI recovers
+      the Alpha and Beta lineage directions — results comparable to RNA velocity methods that require
+      both spliced and unspliced counts.
+    </p>
+
+    <h2 id="biological-context">Biological Context</h2>
+    <p>
+      During pancreatic development, progenitor cells (Ngn3 low EP → Ngn3 high EP → Fev+)
+      bifurcate into:
+    </p>
+    <ul>
+      <li><strong>Alpha cells</strong> (glucagon-secreting) via Pre-Alpha</li>
+      <li><strong>Beta cells</strong> (insulin-secreting) via Pre-Beta</li>
+    </ul>
+    <p>
+      This bifurcation is the central challenge: can Latent-XAI identify two orthogonal
+      directions of differentiation from static gene expression alone?
+    </p>
+
+    <div class="admonition warning">
+      <div class="admonition-title">⚠️ Data challenges</div>
+      <p>
+        The pancreas dataset is highly challenging: only 2,100 cells, ~3,000 genes,
+        sparse point clouds with very sparsely connected "bridge" cells between lineages,
+        and high technical noise from metabolic labelling.
+      </p>
+    </div>
+
+    <h2 id="preprocessing">Data Preprocessing</h2>
+    <div class="code-block-wrapper">
+      <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
+      <pre><code><span class="tok-kw">import</span> scanpy <span class="tok-kw">as</span> sc
+<span class="tok-kw">from</span> sklearn.preprocessing <span class="tok-kw">import</span> RobustScaler
+
+<span class="tok-cm"># Load from CellRank tutorial (h5ad format)</span>
+adata <span class="tok-op">=</span> sc.read(<span class="tok-str">"data/pancreas_cellrank.h5ad"</span>)
+
+<span class="tok-cm"># Remove rare/ambiguous populations</span>
+exclude <span class="tok-op">=</span> [<span class="tok-str">"Fev+ Pyy"</span>, <span class="tok-str">"Fev+ Delta"</span>, <span class="tok-str">"Fev+ Epsilon"</span>, <span class="tok-str">"Delta"</span>, <span class="tok-str">"Epsilon"</span>]
+adata <span class="tok-op">=</span> adata[~adata.obs[<span class="tok-str">"clusters"</span>].isin(exclude)]
+
+<span class="tok-cm"># Select top 3000 highly variable genes</span>
+sc.pp.highly_variable_genes(adata, n_top_genes<span class="tok-op">=</span><span class="tok-num">3000</span>)
+adata <span class="tok-op">=</span> adata[:, adata.var.highly_variable]
+print(<span class="tok-str">f"Dataset: {adata.n_obs} cells × {adata.n_vars} genes"</span>)  <span class="tok-cm"># 2193 × 3000</span>
+
+<span class="tok-cm"># Use SPLICED counts only (no velocity/unspliced)</span>
+X_spliced <span class="tok-op">=</span> adata.layers[<span class="tok-str">"spliced"</span>].toarray()
+
+<span class="tok-cm"># Log-normalise then RobustScale</span>
+X_log <span class="tok-op">=</span> np.log1p(X_spliced)
+scaler <span class="tok-op">=</span> RobustScaler()
+X_scaled <span class="tok-op">=</span> scaler.fit_transform(X_log)</code></pre>
+    </div>
+
+    <h2 id="vae-config">VAE Configuration</h2>
+    <table class="param-table">
+      <thead><tr><th>Parameter</th><th>Value</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>Input dim</td><td>3,000</td><td>Top HVGs</td></tr>
+        <tr><td>Encoder</td><td>3 layers, hidden=256, LeakyReLU</td><td></td></tr>
+        <tr><td>Decoder</td><td>3 layers, hidden=256, ELU</td><td>C¹ smooth</td></tr>
+        <tr><td>Latent dim</td><td><strong>4</strong></td><td>Captures bifurcating lineages</td></tr>
+        <tr><td>Epochs</td><td>500</td><td></td></tr>
+        <tr><td>Learning rate</td><td>5 × 10⁻⁴</td><td></td></tr>
+        <tr><td>Batch size</td><td>128</td><td></td></tr>
+        <tr><td>β (KL weight)</td><td>10.0</td><td>Strong regularisation for sparse data</td></tr>
+      </tbody>
+    </table>
+
+    <div class="code-block-wrapper">
+      <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
+      <pre><code><span class="tok-kw">from</span> latentxai <span class="tok-kw">import</span> lxai
+
+<span class="tok-cm"># Full dataset — 4D latent space, auto sigma</span>
+model <span class="tok-op">=</span> lxai(
+    decoder<span class="tok-op">=</span>decoder,
+    n_neighbors<span class="tok-op">=</span><span class="tok-num">20</span>,
+    sigma<span class="tok-op">=</span><span class="tok-str">'auto'</span>,             <span class="tok-cm"># self-tuning (Zelnik-Manor) for sparse data</span>
+    principle_tangent_dims<span class="tok-op">=</span><span class="tok-num">4</span>,  <span class="tok-cm"># = latent dim</span>
+    n_components<span class="tok-op">=</span><span class="tok-num">10</span>
+)
+model.fit(Z)  <span class="tok-cm"># Z.shape = (2193, 4)</span></code></pre>
+    </div>
+
+    <h2 id="umap-verification">UMAP Verification</h2>
+    <p>
+      We first verify that the 4D latent space preserves cell-type neighbourhood structure
+      using UMAP visualisation:
+    </p>
+    <div class="code-block-wrapper">
+      <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
+      <pre><code><span class="tok-kw">import</span> scanpy <span class="tok-kw">as</span> sc
+
+adata.obsm[<span class="tok-str">"X_vae"</span>] <span class="tok-op">=</span> Z
+sc.pp.neighbors(adata, use_rep<span class="tok-op">=</span><span class="tok-str">"X_vae"</span>)
+sc.tl.umap(adata)
+sc.pl.umap(adata, color<span class="tok-op">=</span><span class="tok-str">"clusters"</span>, palette<span class="tok-op">=</span><span class="tok-str">"tab20"</span>)</code></pre>
+    </div>
+
+    <h2 id="results">Results</h2>
+    <div class="figure-block">
+      <img src="../assets/figures/Pancreas.png" alt="Latent-XAI Pancreas scRNA-seq results" />
+      <p class="figure-caption">
+        <strong>Fig. 5 — Pancreatic differentiation analysis.</strong>
+        (a) UMAP coloured by cell type.
+        (b) Connection Laplacian spectrum — high eigenvalues reflect sparse/noisy data.
+        (c) Streamline visualisation of the first eigenvector: generally consistent within cell types despite noise.
+        (d) Cosine similarity matrix of the vector field — clear block structure per cell type.
+        (e,f) Cosine similarity for Alpha and Beta lineage subsets separately.
+        (g) Projection onto lineage-specific principal directions from Latent-XAI — Alpha and Beta are <strong>perfectly orthogonal</strong>.
+        (h) Same analysis with CellRank RNA velocity — Alpha and Beta are less separated.
+      </p>
+    </div>
+
+    <h2 id="lineage-separation">Lineage Delineation</h2>
+    <p>
+      Due to the fractured manifold, we fit Latent-XAI separately on two lineage subsets:
+    </p>
+    <div class="code-block-wrapper">
+      <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
+      <pre><code><span class="tok-cm"># Define lineage subsets</span>
+alpha_mask <span class="tok-op">=</span> adata.obs[<span class="tok-str">"clusters"</span>].isin([<span class="tok-str">"Alpha"</span>, <span class="tok-str">"Pre-Alpha"</span>])
+beta_mask  <span class="tok-op">=</span> adata.obs[<span class="tok-str">"clusters"</span>].isin([<span class="tok-str">"Beta"</span>,  <span class="tok-str">"Pre-Beta"</span>])
+
+<span class="tok-cm"># Fit Latent-XAI on each lineage</span>
+model_alpha <span class="tok-op">=</span> lxai(decoder<span class="tok-op">=</span>decoder, n_neighbors<span class="tok-op">=</span><span class="tok-num">20</span>, sigma<span class="tok-op">=</span><span class="tok-str">'auto'</span>, principle_tangent_dims<span class="tok-op">=</span><span class="tok-num">4</span>)
+model_alpha.fit(Z[alpha_mask])
+
+model_beta  <span class="tok-op">=</span> lxai(decoder<span class="tok-op">=</span>decoder, n_neighbors<span class="tok-op">=</span><span class="tok-num">20</span>, sigma<span class="tok-op">=</span><span class="tok-str">'auto'</span>, principle_tangent_dims<span class="tok-op">=</span><span class="tok-num">4</span>)
+model_beta.fit(Z[beta_mask])
+
+<span class="tok-cm"># Extract consensus direction via unit-normalised PCA</span>
+<span class="tok-kw">from</span> sklearn.decomposition <span class="tok-kw">import</span> PCA
+<span class="tok-kw">import</span> numpy <span class="tok-kw">as</span> np
+
+<span class="tok-kw">def</span> <span class="fn-name">get_direction</span>(pvf):
+    v <span class="tok-op">=</span> pvf[<span class="tok-num">0</span>]  <span class="tok-cm"># first VF (N, D)</span>
+    norms <span class="tok-op">=</span> np.linalg.norm(v, axis<span class="tok-op">=</span><span class="tok-num">1</span>, keepdims<span class="tok-op">=</span><span class="tok-cls">True</span>)
+    v_unit <span class="tok-op">=</span> v <span class="tok-op">/</span> (norms <span class="tok-op">+</span> <span class="tok-num">1e-8</span>)          <span class="tok-cm"># unit-normalise</span>
+    pca <span class="tok-op">=</span> PCA(n_components<span class="tok-op">=</span><span class="tok-num">1</span>)
+    pca.fit(v_unit)
+    <span class="tok-kw">return</span> pca.components_[<span class="tok-num">0</span>]              <span class="tok-cm"># consensus direction</span>
+
+dir_alpha <span class="tok-op">=</span> get_direction(model_alpha.PVF_on_X_)  <span class="tok-cm"># (D,)</span>
+dir_beta  <span class="tok-op">=</span> get_direction(model_beta.PVF_on_X_)   <span class="tok-cm"># (D,)</span>
+
+print(<span class="tok-str">f"Cosine similarity α·β: {np.dot(dir_alpha, dir_beta):.4f}"</span>)
+<span class="tok-cm"># ≈ 0.000 → perfectly orthogonal!</span></code></pre>
+    </div>
+
+    <h2 id="comparison">Comparison with CellRank</h2>
+
+    <div class="figure-block">
+      <img src="../assets/figures/pancrease_CellRank-reference.png" alt="CellRank reference velocity for pancreas dataset" />
+      <p class="figure-caption">
+        <strong>Reference: CellRank velocity vector field.</strong>
+        Standard RNA velocity computed from spliced + unspliced counts.
+      </p>
+    </div>
+
+    <div class="figure-block">
+      <img src="../assets/figures/scvelo_pancrease_latent-XAI-velcoity.png" alt="Latent-XAI velocity on pancreas plotted via scVelo" style="max-width:580px" />
+      <p class="figure-caption">
+        <strong>Latent-XAI vector field projected and visualised via scVelo.</strong>
+        Note the coherent directional flows within each cell type, captured from spliced counts only.
+      </p>
+    </div>
+
+    <p>
+      Using the same tangent-plane projection, we find that:
+    </p>
+    <ul>
+      <li>
+        <strong>Latent-XAI directions</strong>: Alpha and Beta lineages are <strong>perfectly orthogonal</strong>,
+        with Pre-Alpha/Pre-Beta forming a tight cluster at the origin (bifurcation point).
+      </li>
+      <li>
+        <strong>CellRank directions</strong>: Less perpendicular — Beta cells spread across both axes,
+        reflecting shared biological processes captured by RNA velocity rather than lineage-specific trajectories.
+      </li>
+    </ul>
+
+    <div class="admonition tip">
+      <div class="admonition-title">💡 Why does Latent-XAI outperform here?</div>
+      <p>
+        CellRank velocity vectors represent the <em>average</em> of all pathway processes occurring in a cell.
+        Latent-XAI theoretically separates different pathways into <em>distinct eigenvectors</em>
+        (when the manifold is sufficiently smooth), isolating lineage-specific directions.
+      </p>
+    </div>
+
+    <div class="content-footer">
+      <span>← <a href="alanine_dipeptide.html">Alanine Dipeptide</a> &nbsp;|&nbsp; <a href="../index.html">Back to Overview</a></span>
+    </div>
+  </div>
+</div>
+
+<aside class="toc-sidebar">
+  <div class="toc-title">On this page</div>
+  <ul class="toc-list">
+    <li><a href="#biological-context">Biological Context</a></li>
+    <li><a href="#preprocessing">Data Preprocessing</a></li>
+    <li><a href="#vae-config">VAE Configuration</a></li>
+    <li><a href="#umap-verification">UMAP Verification</a></li>
+    <li><a href="#results">Results</a></li>
+    <li><a href="#lineage-separation">Lineage Delineation</a></li>
+    <li><a href="#comparison">CellRank Comparison</a></li>
+  </ul>
+</aside>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

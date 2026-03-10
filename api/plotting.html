@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>plotting — API Reference — Latent-XAI</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+<button class="sidebar-toggle" id="sidebar-toggle">☰</button>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<nav class="sidebar" role="navigation">
+  <a class="sidebar-logo" href="../index.html">
+    <div class="sidebar-logo-icon">🧬</div>
+    <div class="sidebar-logo-text">Latent-XAI<span>v1.0 · documentation</span></div>
+  </a>
+  <div class="sidebar-search"><input type="search" placeholder="Search docs…" /></div>
+  <div class="sidebar-nav">
+    <div class="sidebar-section-title">General</div>
+    <a href="../index.html">🏠 Overview</a>
+    <a href="../installation.html">📦 Installation</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">API Reference</div>
+    <a href="lxai.html">🔬 lxai (core class)</a>
+    <a href="plotting.html" class="active">📊 plotting</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">Tutorials</div>
+    <a href="../tutorials/swiss_roll.html">🌀 Swiss Roll</a>
+    <a href="../tutorials/twin_peaks.html">⛰️ Twin Peaks</a>
+    <a href="../tutorials/alanine_dipeptide.html">🧪 Alanine Dipeptide</a>
+    <a href="../tutorials/pancreas.html">🔬 Pancreatic scRNA-seq</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">About</div>
+    <a href="https://github.com" target="_blank" rel="noopener">🔗 GitHub ↗</a>
+  </div>
+</nav>
+
+<div class="main-wrapper">
+  <div class="content-header">
+    <div class="header-links"><a href="https://github.com" target="_blank">GitHub</a></div>
+    <span class="version-badge">v1.0 stable</span>
+    <button class="theme-toggle" id="theme-toggle">🌙</button>
+  </div>
+
+  <div class="content">
+    <div class="breadcrumb">
+      <a href="../index.html">Latent-XAI</a><span class="breadcrumb-sep">›</span>
+      <a href="#">API Reference</a><span class="breadcrumb-sep">›</span>
+      <span>plotting</span>
+    </div>
+
+    <h1 id="plotting">plotting</h1>
+    <p>
+      The <code>plotting</code> module provides vector field visualisation utilities and
+      the <code>GraphVelo</code> class for projecting high-dimensional velocity fields onto
+      2D UMAP embeddings when the latent dimension exceeds 2.
+    </p>
+
+    <div class="admonition note">
+      <div class="admonition-title">ℹ️ Note — graphvelo dependency</div>
+      <p><code>GraphVelo.train()</code> requires the optional <code>graphvelo</code> package.
+      <code>plot_flow()</code> for 2D latent spaces works without it.</p>
+    </div>
+
+    <!-- ── plot_flow ── -->
+    <h2 id="plot-flow">plot_flow</h2>
+    <div class="api-signature">
+      <span class="fn-name">plot_flow</span>(z_points, V_latent, overlay_color, nbrs_idx=<span class="tok-cls">None</span>,
+      umap_coords=<span class="tok-cls">None</span>, skip=<span class="tok-num">5</span>, title=<span class="tok-str">"none"</span>,
+      overlay_color_label=<span class="tok-str">"overlay"</span>, figsize=(<span class="tok-num">10</span>, <span class="tok-num">7</span>),
+      ref_pos=<span class="tok-cls">None</span>, plot_title=<span class="tok-cls">True</span>)
+    </div>
+    <p>
+      Plots the vector field as a quiver plot over a scatter of latent points. If the latent space
+      has more than 2 dimensions, <code>GraphVelo</code> is used internally to project to the provided
+      UMAP coordinates.
+    </p>
+    <table class="param-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="param-name">z_points</span></td><td><span class="param-type">ndarray (N, L)</span></td><td>Latent coordinates. If L > 2, must also pass <code>umap_coords</code> and <code>nbrs_idx</code>.</td></tr>
+        <tr><td><span class="param-name">V_latent</span></td><td><span class="param-type">ndarray (N, L)</span></td><td>Vector field in latent space (<code>model.VF_on_Z_</code> for the first field).</td></tr>
+        <tr><td><span class="param-name">overlay_color</span></td><td><span class="param-type">ndarray (N,)</span></td><td>Values used to colour the scatter points (e.g. angle, time, cell type index).</td></tr>
+        <tr><td><span class="param-name">nbrs_idx</span></td><td><span class="param-type">list of arrays</span></td><td>Neighbour indices (model.neighbor_indices_). Required when L > 2.</td></tr>
+        <tr><td><span class="param-name">umap_coords</span></td><td><span class="param-type">ndarray (N, 2)</span></td><td>2D UMAP embedding. Required when L > 2 to project arrows.</td></tr>
+        <tr><td><span class="param-name">skip</span></td><td><span class="param-type">int</span></td><td>Plot one arrow every <code>skip</code> points to avoid clutter. Default: 5.</td></tr>
+        <tr><td><span class="param-name">title</span></td><td><span class="param-type">str</span></td><td>Plot title (also used as filename: <code>plots/{title}.png</code>).</td></tr>
+        <tr><td><span class="param-name">overlay_color_label</span></td><td><span class="param-type">str</span></td><td>Colorbar label for the scatter colour axis.</td></tr>
+        <tr><td><span class="param-name">figsize</span></td><td><span class="param-type">tuple</span></td><td>Matplotlib figure size. Default: (10, 7).</td></tr>
+        <tr><td><span class="param-name">ref_pos</span></td><td><span class="param-type">array-like (2,), optional</span></td><td>If provided, plots a white star marker at this (x, y) reference position (e.g. energy minimum).</td></tr>
+        <tr><td><span class="param-name">plot_title</span></td><td><span class="param-type">bool</span></td><td>Whether to display the title on the plot. Default: True.</td></tr>
+      </tbody>
+    </table>
+    <div class="admonition tip">
+      <div class="admonition-title">💡 Tip — Vector normalisation</div>
+      <p>Arrow lengths are unit-normalised before plotting: <code>v_unit = v / (||v|| + ε)</code>.
+      This ensures all arrows are the same visual length, emphasising <em>direction</em> rather than magnitude.</p>
+    </div>
+    <div class="code-block-wrapper">
+      <div class="code-block-header">
+        <span class="code-lang-badge">python</span>
+        <button class="copy-btn">⧉ Copy</button>
+      </div>
+      <pre><code><span class="tok-kw">from</span> latentxai.plotting <span class="tok-kw">import</span> plot_flow
+
+<span class="tok-cm"># 2D latent space — direct quiver plot</span>
+plot_flow(
+    z_points<span class="tok-op">=</span>Z,
+    V_latent<span class="tok-op">=</span>model.VF_on_Z_,
+    overlay_color<span class="tok-op">=</span>color_values,
+    skip<span class="tok-op">=</span><span class="tok-num">10</span>,
+    title<span class="tok-op">=</span><span class="tok-str">"swiss_roll_VF1"</span>,
+    overlay_color_label<span class="tok-op">=</span><span class="tok-str">"Swiss Roll position"</span>
+)
+
+<span class="tok-cm"># 4D latent space — UMAP projection via GraphVelo</span>
+plot_flow(
+    z_points<span class="tok-op">=</span>Z,
+    V_latent<span class="tok-op">=</span>model.VF_on_Z_,
+    overlay_color<span class="tok-op">=</span>cell_type_ids,
+    nbrs_idx<span class="tok-op">=</span>model.neighbor_indices_,
+    umap_coords<span class="tok-op">=</span>umap_embedding,
+    skip<span class="tok-op">=</span><span class="tok-num">5</span>,
+    title<span class="tok-op">=</span><span class="tok-str">"pancreas_VF1"</span>
+)</code></pre>
+    </div>
+
+    <!-- ── GraphVelo ── -->
+    <h2 id="graphvelo">GraphVelo</h2>
+    <div class="api-signature">
+      <span class="tok-kw">class</span> <span class="fn-class">GraphVelo</span>(X_data=<span class="tok-cls">None</span>, V_data=<span class="tok-cls">None</span>, nbrs_idx=<span class="tok-cls">None</span>,
+      gene_subset=<span class="tok-cls">None</span>, approx=<span class="tok-cls">False</span>, n_pcs=<span class="tok-num">30</span>, mo=<span class="tok-cls">False</span>)
+    </div>
+    <p>
+      Manifold-constrained velocity projection. Used by <code>plot_flow</code> when the latent dimension
+      is greater than 2 to project high-dimensional velocity vectors onto a 2D UMAP embedding.
+    </p>
+
+    <h3 id="graphvelo-train">train</h3>
+    <div class="api-signature">
+      gv.<span class="fn-name">train</span>(a=<span class="tok-num">1</span>, b=<span class="tok-num">10</span>, r=<span class="tok-num">1</span>, loss_func=<span class="tok-cls">None</span>, ...)
+    </div>
+    <p>
+      Learns a transition matrix by minimising the tangent space projection (TSP) loss:
+    </p>
+    <div class="math-block">
+      L(wᵢ) = a |v̂ − v|² − b cos(u, v̂) + λ Σⱼ |wᵢⱼ|²
+    </div>
+    <p>where <strong>v̂ = Σⱼ wᵢⱼ · dᵢⱼ</strong> approximates the velocity from neighbour displacements.</p>
+
+    <h3 id="graphvelo-project">project_velocity</h3>
+    <div class="api-signature">
+      gv.<span class="fn-name">project_velocity</span>(X_embedding, T=<span class="tok-cls">None</span>) → ndarray (N, 2)
+    </div>
+    <p>Projects trained velocity vectors onto a low-dimensional embedding using the learned transition matrix T.</p>
+
+    <!-- ── tangent_space_projection ── -->
+    <h2 id="tangent-space-projection">tangent_space_projection</h2>
+    <div class="api-signature">
+      <span class="fn-name">tangent_space_projection</span>(X, V, C, nbrs, a=<span class="tok-num">1.0</span>, b=<span class="tok-num">0.0</span>,
+      r=<span class="tok-num">1.0</span>, loss_func=<span class="tok-str">"linear"</span>, n_jobs=<span class="tok-cls">None</span>)
+    </div>
+    <p>
+      Core function that learns a sparse transition matrix via the TSP loss. Runs in parallel
+      across all data points using <code>joblib</code>.
+    </p>
+    <p><strong>Returns:</strong> <code>ndarray (N, N)</code> — dense transition matrix E with entries <code>E[i, nbrs[i]] = wᵢ</code>.</p>
+
+    <div class="content-footer">
+      <span>← <a href="lxai.html">lxai API</a> &nbsp;|&nbsp; Next: <a href="../tutorials/swiss_roll.html">Swiss Roll Tutorial →</a></span>
+    </div>
+  </div>
+</div>
+
+<aside class="toc-sidebar">
+  <div class="toc-title">On this page</div>
+  <ul class="toc-list">
+    <li><a href="#plot-flow">plot_flow()</a></li>
+    <li><a href="#graphvelo">GraphVelo</a></li>
+    <li class="toc-h3"><a href="#graphvelo-train">→ train()</a></li>
+    <li class="toc-h3"><a href="#graphvelo-project">→ project_velocity()</a></li>
+    <li><a href="#tangent-space-projection">tangent_space_projection()</a></li>
+  </ul>
+</aside>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

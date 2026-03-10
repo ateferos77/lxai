@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Twin Peaks Tutorial — Latent-XAI</title>
+  <meta name="description" content="Tutorial: applying Latent-XAI to the Twin Peaks high-curvature manifold." />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+<button class="sidebar-toggle" id="sidebar-toggle">☰</button>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<nav class="sidebar" role="navigation">
+  <a class="sidebar-logo" href="../index.html">
+    <div class="sidebar-logo-icon">🧬</div>
+    <div class="sidebar-logo-text">Latent-XAI<span>v1.0 · documentation</span></div>
+  </a>
+  <div class="sidebar-search"><input type="search" placeholder="Search docs…" /></div>
+  <div class="sidebar-nav">
+    <div class="sidebar-section-title">General</div>
+    <a href="../index.html">🏠 Overview</a>
+    <a href="../installation.html">📦 Installation</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">API Reference</div>
+    <a href="../api/lxai.html">🔬 lxai (core class)</a>
+    <a href="../api/plotting.html">📊 plotting</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">Tutorials</div>
+    <a href="swiss_roll.html">🌀 Swiss Roll</a>
+    <a href="twin_peaks.html" class="active">⛰️ Twin Peaks</a>
+    <a href="alanine_dipeptide.html">🧪 Alanine Dipeptide</a>
+    <a href="pancreas.html">🔬 Pancreatic scRNA-seq</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">About</div>
+    <a href="https://github.com" target="_blank" rel="noopener">🔗 GitHub ↗</a>
+  </div>
+</nav>
+
+<div class="main-wrapper">
+  <div class="content-header">
+    <div class="header-links"><a href="https://github.com" target="_blank">GitHub</a></div>
+    <span class="version-badge">v1.0 stable</span>
+    <button class="theme-toggle" id="theme-toggle">🌙</button>
+  </div>
+
+  <div class="content">
+    <div class="breadcrumb">
+      <a href="../index.html">Latent-XAI</a><span class="breadcrumb-sep">›</span>
+      <span>Tutorials</span><span class="breadcrumb-sep">›</span>
+      <span>Twin Peaks</span>
+    </div>
+
+    <h1 id="twin-peaks">⛰️ Tutorial 2: Twin Peaks</h1>
+    <p>
+      <span class="tag tag-blue">Synthetic Dataset</span>
+      <span class="tag tag-purple">High-Curvature Manifold</span>
+      <span class="tag">2D intrinsic · 3D ambient</span>
+    </p>
+    <p style="margin-top:12px">
+      The Twin Peaks dataset challenges Latent-XAI with <strong>high curvature</strong>:
+      two Gaussian density bumps create sharp peaks and a valley. The VAE flattens this
+      into a 2D disk, hiding the curvature — but the decoder retains it.
+    </p>
+
+    <h2 id="dataset">Dataset</h2>
+    <p>Twin Peaks points lie on the surface of two 3D Gaussian probability densities:</p>
+    <div class="math-block">
+      z = e<sup>−10((x+0.5)² + y²)</sup> + e<sup>−10((x−0.5)² + y²)</sup>
+    </div>
+    <div class="code-block-wrapper">
+      <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
+      <pre><code><span class="tok-kw">import</span> numpy <span class="tok-kw">as</span> np
+
+np.random.seed(<span class="tok-num">0</span>)
+N <span class="tok-op">=</span> <span class="tok-num">5000</span>
+x <span class="tok-op">=</span> np.random.uniform(<span class="tok-op">-</span><span class="tok-num">1</span>, <span class="tok-num">1</span>, N)
+y <span class="tok-op">=</span> np.random.uniform(<span class="tok-op">-</span><span class="tok-num">1</span>, <span class="tok-num">1</span>, N)
+z <span class="tok-op">=</span> (np.exp(<span class="tok-op">-</span><span class="tok-num">10</span> <span class="tok-op">*</span> ((x <span class="tok-op">+</span> <span class="tok-num">0.5</span>)<span class="tok-op">**</span><span class="tok-num">2</span> <span class="tok-op">+</span> y<span class="tok-op">**</span><span class="tok-num">2</span>)) <span class="tok-op">+</span>
+    np.exp(<span class="tok-op">-</span><span class="tok-num">10</span> <span class="tok-op">*</span> ((x <span class="tok-op">-</span> <span class="tok-num">0.5</span>)<span class="tok-op">**</span><span class="tok-num">2</span> <span class="tok-op">+</span> y<span class="tok-op">**</span><span class="tok-num">2</span>)))
+
+<span class="tok-cm"># Add jitter</span>
+jitter <span class="tok-op">=</span> np.random.randn(N, <span class="tok-num">3</span>) <span class="tok-op">*</span> <span class="tok-num">0.01</span>
+X <span class="tok-op">=</span> np.stack([x, y, z], axis<span class="tok-op">=</span><span class="tok-num">1</span>) <span class="tok-op">+</span> jitter  <span class="tok-cm"># (5000, 3)</span></code></pre>
+    </div>
+
+    <h2 id="vae-training">VAE Architecture &amp; Training</h2>
+    <p>
+      A lighter 2-layer network (hidden dim = 128) with ELU for both encoder and decoder.
+      β = 0.01 (very light KL penalty to preserve local geometry).
+    </p>
+    <div class="code-block-wrapper">
+      <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
+      <pre><code><span class="tok-cm"># Training configuration</span>
+config <span class="tok-op">=</span> {
+    <span class="tok-str">"hidden_dim"</span>: <span class="tok-num">128</span>,
+    <span class="tok-str">"latent_dim"</span>: <span class="tok-num">2</span>,
+    <span class="tok-str">"n_layers"</span>: <span class="tok-num">2</span>,
+    <span class="tok-str">"activation"</span>: <span class="tok-str">"ELU"</span>,       <span class="tok-cm"># both encoder AND decoder</span>
+    <span class="tok-str">"epochs"</span>: <span class="tok-num">500</span>,
+    <span class="tok-str">"lr"</span>: <span class="tok-num">1e-3</span>,
+    <span class="tok-str">"batch_size"</span>: <span class="tok-num">128</span>,
+    <span class="tok-str">"beta"</span>: <span class="tok-num">0.01</span>,               <span class="tok-cm"># light KL regularisation</span>
+    <span class="tok-str">"seed"</span>: <span class="tok-num">0</span>
+}</code></pre>
+    </div>
+
+    <h2 id="fitting">Fitting Latent-XAI</h2>
+    <div class="code-block-wrapper">
+      <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
+      <pre><code><span class="tok-kw">from</span> latentxai <span class="tok-kw">import</span> lxai
+
+model <span class="tok-op">=</span> lxai(
+    decoder<span class="tok-op">=</span>decoder,
+    n_neighbors<span class="tok-op">=</span><span class="tok-num">20</span>,
+    sigma<span class="tok-op">=</span><span class="tok-num">0.03</span>,               <span class="tok-cm"># smaller σ due to tighter data range</span>
+    principle_tangent_dims<span class="tok-op">=</span><span class="tok-num">2</span>,
+    n_components<span class="tok-op">=</span><span class="tok-num">7</span>
+)
+model.fit(Z)</code></pre>
+    </div>
+
+    <h2 id="results">Results</h2>
+    <div class="figure-block">
+      <img src="../assets/figures/twin_peeks.png" alt="Twin Peaks Latent-XAI results" />
+      <p class="figure-caption">
+        <strong>Fig. 3 — Twin Peaks analysis.</strong>
+        (a) 3D training data: the surface of two Gaussian density functions.
+        (b) 2D VAE latent space coloured by original z-axis — the VAE <em>flattens</em> the curvature.
+        (c) Spectrum of the Connection Laplacian: gradual increase, no sharp spectral gap (curved manifold).
+        (d) First eigenvector: horizontal flow with curvature-aware bending near the peaks.
+        (e) Third eigenvector: spiral field precisely localised around the two curvature peaks.
+      </p>
+    </div>
+
+    <h3 id="curvature-recovery">Curvature Recovery in the Decoder</h3>
+    <p>
+      Even though the VAE maps the Twin Peaks into a flat disk in latent space (b),
+      the decoder still stores the curvature information. Three key observations from
+      the eigenvectors:
+    </p>
+    <ul>
+      <li>
+        <strong>1st eigenvector</strong>: Global horizontal flow. Near the peak regions, the arrows
+        curve — the vector field is sensitive to the underlying curvature even though the latent
+        representation appears flat.
+      </li>
+      <li>
+        <strong>2nd eigenvector</strong>: Perpendicular flow (see supplementary Fig. S1a), capturing
+        the orthogonal direction of variation.
+      </li>
+      <li>
+        <strong>3rd/4th eigenvector</strong>: Spiral fields concentrated around the peak regions,
+        capturing the local curvature deformations — information that is invisible from the latent
+        space alone.
+      </li>
+    </ul>
+
+    <div class="figure-block">
+      <img src="../assets/figures/suppA.png" alt="Supplementary figure showing Twin Peaks 2nd and 3rd eigenvectors" />
+      <p class="figure-caption">
+        <strong>Fig. S1 — Twin Peaks supplementary.</strong>
+        (a) Second eigenvector — perpendicular to first. (b) Third eigenvector — curvature spiral.
+        Both panels show latent space coloured by original z-axis height.
+      </p>
+    </div>
+
+    <div class="admonition note">
+      <div class="admonition-title">ℹ️ No clear spectral gap</div>
+      <p>
+        Unlike the Swiss Roll, the Twin Peaks spectrum shows a gradual increase rather than a sharp gap.
+        This is expected for a curved manifold — parallel vector fields only exist exactly on flat manifolds.
+        The eigenvectors are "as-parallel-as-possible" minimisers of the roughness objective.
+      </p>
+    </div>
+
+    <div class="content-footer">
+      <span>← <a href="swiss_roll.html">Swiss Roll</a> &nbsp;|&nbsp; Next: <a href="alanine_dipeptide.html">Alanine Dipeptide →</a></span>
+    </div>
+  </div>
+</div>
+
+<aside class="toc-sidebar">
+  <div class="toc-title">On this page</div>
+  <ul class="toc-list">
+    <li><a href="#dataset">Dataset</a></li>
+    <li><a href="#vae-training">VAE Architecture</a></li>
+    <li><a href="#fitting">Fitting Latent-XAI</a></li>
+    <li><a href="#results">Results</a></li>
+    <li class="toc-h3"><a href="#curvature-recovery">Curvature Recovery</a></li>
+  </ul>
+</aside>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

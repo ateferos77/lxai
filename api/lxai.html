@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lxai — API Reference — Latent-XAI</title>
+  <meta name="description" content="API documentation for the lxai core class in Latent-XAI." />
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+<button class="sidebar-toggle" id="sidebar-toggle" title="Toggle navigation">☰</button>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<nav class="sidebar" role="navigation" aria-label="Main navigation">
+  <a class="sidebar-logo" href="../index.html">
+    <div class="sidebar-logo-icon">🧬</div>
+    <div class="sidebar-logo-text">Latent-XAI<span>v1.0 · documentation</span></div>
+  </a>
+  <div class="sidebar-search">
+    <input type="search" placeholder="Search docs…" aria-label="Search documentation" />
+  </div>
+  <div class="sidebar-nav">
+    <div class="sidebar-section-title">General</div>
+    <a href="../index.html">🏠 Overview</a>
+    <a href="../installation.html">📦 Installation</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">API Reference</div>
+    <a href="lxai.html" class="active">🔬 lxai (core class)</a>
+    <a href="plotting.html">📊 plotting</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">Tutorials</div>
+    <a href="../tutorials/swiss_roll.html">🌀 Swiss Roll</a>
+    <a href="../tutorials/twin_peaks.html">⛰️ Twin Peaks</a>
+    <a href="../tutorials/alanine_dipeptide.html">🧪 Alanine Dipeptide</a>
+    <a href="../tutorials/pancreas.html">🔬 Pancreatic scRNA-seq</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-title">About</div>
+    <a href="https://github.com" target="_blank" rel="noopener">🔗 GitHub ↗</a>
+  </div>
+</nav>
+
+<div class="main-wrapper">
+  <div class="content-header">
+    <div class="header-links">
+      <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+      <a href="#" target="_blank" rel="noopener">Paper</a>
+    </div>
+    <span class="version-badge">v1.0 stable</span>
+    <button class="theme-toggle" id="theme-toggle" title="Toggle dark mode">🌙</button>
+  </div>
+
+  <div class="content">
+    <div class="breadcrumb">
+      <a href="../index.html">Latent-XAI</a>
+      <span class="breadcrumb-sep">›</span>
+      <a href="#">API Reference</a>
+      <span class="breadcrumb-sep">›</span>
+      <span>lxai</span>
+    </div>
+
+    <h1 id="lxai">lxai</h1>
+    <p>
+      The <code>lxai</code> class is the core object of the Latent-XAI framework.
+      It follows <strong>scikit-learn estimator conventions</strong>: hyperparameters are set in
+      <code>__init__()</code>, fitted attributes end with an underscore (<code>_</code>),
+      and <code>fit()</code> returns <code>self</code>.
+    </p>
+
+    <!-- ── CLASS SIGNATURE ── -->
+    <div class="api-signature">
+      <span class="tok-kw">class</span> <span class="fn-class">lxai</span>(<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;decoder<span class="tok-op">=</span><span class="tok-str">'PCA'</span>,<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;n_neighbors<span class="tok-op">=</span><span class="tok-num">20</span>,<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;n_components<span class="tok-op">=</span><span class="tok-num">5</span>,<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;principle_tangent_dims<span class="tok-op">=</span><span class="tok-num">3</span>,<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;sigma<span class="tok-op">=</span><span class="tok-num">0.1</span><br>
+      )
+    </div>
+
+    <h2 id="parameters">Constructor Parameters</h2>
+    <table class="param-table">
+      <thead>
+        <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="param-name">decoder</span></td>
+          <td><span class="param-type">callable | 'PCA'</span></td>
+          <td><span class="param-default">'PCA'</span></td>
+          <td>The VAE decoder function. Must accept a <code>torch.Tensor</code> of shape <code>(N, L)</code> and return <code>(N, D)</code>. If <code>'PCA'</code>, uses local PCA for tangent estimation (no GPU decoder required).</td>
+        </tr>
+        <tr>
+          <td><span class="param-name">n_neighbors</span></td>
+          <td><span class="param-type">int</span></td>
+          <td><span class="param-default">20</span></td>
+          <td>Number of nearest neighbours for the KNN graph construction in latent space. Larger values capture smoother but less local structure.</td>
+        </tr>
+        <tr>
+          <td><span class="param-name">n_components</span></td>
+          <td><span class="param-type">int</span></td>
+          <td><span class="param-default">5</span></td>
+          <td>Number of eigenvectors (parallel vector fields) to compute from the Connection Laplacian. Corresponds to <em>M</em> in the paper.</td>
+        </tr>
+        <tr>
+          <td><span class="param-name">principle_tangent_dims</span></td>
+          <td><span class="param-type">int</span></td>
+          <td><span class="param-default">3</span></td>
+          <td>Number of principal tangent directions (<em>H</em>) extracted from the Jacobian SVD. Must be ≤ latent dimension <em>L</em>. Corresponds to the intrinsic dimensionality of the manifold.</td>
+        </tr>
+        <tr>
+          <td><span class="param-name">sigma</span></td>
+          <td><span class="param-type">float | 'auto'</span></td>
+          <td><span class="param-default">0.1</span></td>
+          <td>Gaussian kernel bandwidth for edge weights. Set to <code>'auto'</code> for self-tuning (Zelnik-Manor &amp; Perona 2004), which uses per-point local scale.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ── FITTED ATTRIBUTES ── -->
+    <h2 id="attributes">Fitted Attributes</h2>
+    <p>Available after calling <code>fit()</code>:</p>
+    <table class="param-table">
+      <thead>
+        <tr><th>Attribute</th><th>Shape</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="param-name">Z_</span></td>
+          <td><span class="param-type">(N, L)</span></td>
+          <td>Latent points used for fitting.</td>
+        </tr>
+        <tr>
+          <td><span class="param-name">Jac_</span></td>
+          <td><span class="param-type">(N, D, L)</span></td>
+          <td>Jacobian matrices ∇ψ(z) at each latent point.</td>
+        </tr>
+        <tr>
+          <td><span class="param-name">T_</span></td>
+          <td><span class="param-type">(N, D, H)</span></td>
+          <td>Orthonormal tangent space bases (top <em>H</em> left singular vectors of each Jacobian).</td>
+        </tr>
+        <tr>
+          <td><span class="param-name">Jac_S_</span></td>
+          <td><span class="param-type">(N, L)</span></td>
+          <td>Normalised singular values of the Jacobian at each point.</td>
+        </tr>
+        <tr>
+          <td><span class="param-name">eigenvalues_</span></td>
+          <td><span class="param-type">(M,)</span></td>
+          <td>Eigenvalues of the Connection Laplacian, sorted by absolute value. Small eigenvalues correspond to smooth parallel vector fields.</td>
+        </tr>
+        <tr>
+          <td><span class="param-name">eigenvectors_raw_</span></td>
+          <td><span class="param-type">(M, N, H)</span></td>
+          <td>Raw eigenvectors in local tangent coordinates.</td>
+        </tr>
+        <tr>
+          <td><span class="param-name">PVF_on_X_</span></td>
+          <td><span class="param-type">(M, N, D)</span></td>
+          <td>Parallel vector fields in ambient (data) space. The <em>m</em>-th field is <code>PVF_on_X_[m]</code>.</td>
+        </tr>
+        <tr>
+          <td><span class="param-name">VF_on_Z_</span></td>
+          <td><span class="param-type">(N, L)</span></td>
+          <td>First vector field projected to latent space via the Moore-Penrose pseudoinverse of J.</td>
+        </tr>
+        <tr>
+          <td><span class="param-name">neighbor_indices_</span></td>
+          <td><span class="param-type">list of arrays</span></td>
+          <td>Neighbour indices for each point in the KNN graph.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ── METHODS ── -->
+    <h2 id="methods">Methods</h2>
+
+    <!-- fit -->
+    <h3 id="fit">fit</h3>
+    <div class="api-signature">
+      model.<span class="fn-name">fit</span>(Z, data=<span class="tok-cls">None</span>, knn_distances=<span class="tok-cls">None</span>,
+      orient_v_0=<span class="tok-cls">None</span>, orient_to=<span class="tok-cls">None</span>, smooth_VF=<span class="tok-cls">False</span>)
+    </div>
+    <p>Fit the Latent-XAI model. Computes Jacobians, builds the Connection Laplacian, and extracts parallel vector fields.</p>
+    <table class="param-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="param-name">Z</span></td><td><span class="param-type">ndarray (N, L)</span></td><td>Latent codes. The input to the Connection Laplacian computation.</td></tr>
+        <tr><td><span class="param-name">data</span></td><td><span class="param-type">ndarray (N, D), optional</span></td><td>Original data in ambient space. Required when <code>decoder='PCA'</code>.</td></tr>
+        <tr><td><span class="param-name">knn_distances</span></td><td><span class="param-type">sparse matrix, optional</span></td><td>Precomputed KNN distance graph. If <code>None</code>, computed automatically from <code>Z</code>.</td></tr>
+        <tr><td><span class="param-name">orient_v_0</span></td><td><span class="param-type">ndarray, optional</span></td><td>Reference vectors for tangent space orientation alignment.</td></tr>
+        <tr><td><span class="param-name">orient_to</span></td><td><span class="param-type">ndarray, optional</span></td><td>Reference vectors for vector field sign orientation (flip eigenvectors to align).</td></tr>
+        <tr><td><span class="param-name">smooth_VF</span></td><td><span class="param-type">bool</span></td><td>If <code>True</code>, smooth vector fields by averaging over neighbours. Default: <code>False</code>.</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Returns:</strong> <code>self</code> — fitted estimator.</p>
+
+    <div class="code-block-wrapper">
+      <div class="code-block-header">
+        <span class="code-lang-badge">python</span>
+        <button class="copy-btn">⧉ Copy</button>
+      </div>
+      <pre><code><span class="tok-kw">from</span> latentxai <span class="tok-kw">import</span> lxai
+
+model <span class="tok-op">=</span> lxai(decoder<span class="tok-op">=</span>vae.decode, n_neighbors<span class="tok-op">=</span><span class="tok-num">20</span>, sigma<span class="tok-op">=</span><span class="tok-num">0.3</span>, principle_tangent_dims<span class="tok-op">=</span><span class="tok-num">2</span>)
+model.fit(Z)  <span class="tok-cm"># Z: ndarray (N, L) of latent codes</span>
+
+<span class="tok-cm"># Access results</span>
+print(model.eigenvalues_)       <span class="tok-cm"># (5,) eigenvalues</span>
+print(model.PVF_on_X_.shape)    <span class="tok-cm"># (5, N, D)</span></code></pre>
+    </div>
+
+    <!-- fit_transform -->
+    <h3 id="fit-transform">fit_transform</h3>
+    <div class="api-signature">
+      model.<span class="fn-name">fit_transform</span>(Z, **kwargs)
+    </div>
+    <p>Convenience method: fit the model and return the <strong>first parallel vector field</strong> in ambient space.</p>
+    <p><strong>Returns:</strong> <code>ndarray (N, D)</code> — first parallel vector field.</p>
+
+    <!-- compute_decoder_jacobian -->
+    <h3 id="compute-jacobian">compute_decoder_jacobian</h3>
+    <div class="api-signature">
+      model.<span class="fn-name">compute_decoder_jacobian</span>(z, custom_decoder=<span class="tok-cls">None</span>)
+    </div>
+    <p>
+      Computes the Jacobian matrix of the VAE decoder at each point using PyTorch autograd
+      (<code>backward()</code> with one-hot outputs).
+    </p>
+    <table class="param-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="param-name">z</span></td><td><span class="param-type">torch.Tensor (N, L)</span></td><td>Latent vectors on the same device as the decoder.</td></tr>
+        <tr><td><span class="param-name">custom_decoder</span></td><td><span class="param-type">callable, optional</span></td><td>Alternative decoder function to use instead of <code>self.decoder</code>.</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Returns:</strong> <code>torch.Tensor (N, D, L)</code> — Jacobian matrices. Detached from the computation graph.</p>
+
+    <!-- project_fields_to_latent -->
+    <h3 id="project-fields">project_fields_to_latent</h3>
+    <div class="api-signature">
+      model.<span class="fn-name">project_fields_to_latent</span>(z_points, V_ambient, precomputed_jacobians=<span class="tok-cls">None</span>)
+    </div>
+    <p>
+      Projects a vector field from ambient space back to latent space using the
+      Moore-Penrose pseudoinverse: <strong>v_latent = (J<sup>T</sup>J)<sup>-1</sup> J<sup>T</sup> v_ambient</strong>.
+      Tikhonov regularisation (ε = 1e-6) is applied for numerical stability.
+    </p>
+    <p><strong>Returns:</strong> <code>ndarray (N, L)</code> — vector field in latent space.</p>
+
+    <!-- save -->
+    <h3 id="save">save</h3>
+    <div class="api-signature">
+      model.<span class="fn-name">save</span>(filename)
+    </div>
+    <p>Serialise the fitted model to a file using <code>dill</code> (supports lambda functions and PyTorch modules).</p>
+    <div class="code-block-wrapper">
+      <div class="code-block-header">
+        <span class="code-lang-badge">python</span>
+        <button class="copy-btn">⧉ Copy</button>
+      </div>
+      <pre><code>model.save(<span class="tok-str">"latentxai_swissroll.pkl"</span>)
+
+<span class="tok-cm"># Load later</span>
+<span class="tok-kw">import</span> dill <span class="tok-kw">as</span> pickle
+<span class="tok-kw">with</span> open(<span class="tok-str">"latentxai_swissroll.pkl"</span>, <span class="tok-str">"rb"</span>) <span class="tok-kw">as</span> f:
+    model <span class="tok-op">=</span> pickle.load(f)</code></pre>
+    </div>
+
+    <!-- Private methods note -->
+    <h2 id="internals">Internal Methods</h2>
+    <p>The following methods are used internally but are accessible if needed:</p>
+    <table class="param-table">
+      <thead><tr><th>Method</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>_build_connection_laplacian(T_z, weights_csr, N, H)</code></td><td>Vectorised assembly of the sparse block Connection Laplacian matrix B of size NH×NH.</td></tr>
+        <tr><td><code>_compute_tangent_spaces(Jac, orient_v_0)</code></td><td>Batched SVD of Jacobians to extract orthonormal tangent bases T_i of shape (N, D, H).</td></tr>
+        <tr><td><code>_PVF(Z, Jac, weights_csr, orient_v_0)</code></td><td>Full parallel vector field computation: builds B, runs GPU eigsh, stores results.</td></tr>
+        <tr><td><code>_compute_weights(data_graph)</code></td><td>Gaussian kernel weights: exp(−d²/2σ).</td></tr>
+        <tr><td><code>_compute_adaptive_weights(data_graph)</code></td><td>Self-tuning Gaussian weights (Zelnik-Manor &amp; Perona 2004).</td></tr>
+        <tr><td><code>compute_local_PCA(data, knn_graph, Z_dim_num)</code></td><td>Local PCA fallback for tangent estimation when no decoder is available.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="content-footer">
+      <span>Next: <a href="plotting.html">plotting API →</a></span>
+      <span><a href="https://github.com" target="_blank" rel="noopener">GitHub ↗</a></span>
+    </div>
+  </div>
+</div>
+
+<aside class="toc-sidebar" aria-label="On this page">
+  <div class="toc-title">On this page</div>
+  <ul class="toc-list">
+    <li><a href="#parameters">Constructor Parameters</a></li>
+    <li><a href="#attributes">Fitted Attributes</a></li>
+    <li><a href="#methods">Methods</a></li>
+    <li class="toc-h3"><a href="#fit">fit()</a></li>
+    <li class="toc-h3"><a href="#fit-transform">fit_transform()</a></li>
+    <li class="toc-h3"><a href="#compute-jacobian">compute_decoder_jacobian()</a></li>
+    <li class="toc-h3"><a href="#project-fields">project_fields_to_latent()</a></li>
+    <li class="toc-h3"><a href="#save">save()</a></li>
+    <li><a href="#internals">Internal Methods</a></li>
+  </ul>
+</aside>
+
+<script src="../js/main.js"></script>
+</body>
+</html>
