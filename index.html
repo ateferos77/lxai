@@ -135,34 +135,34 @@
     <h2 id="key-ideas">Key Ideas</h2>
     <div class="cards-grid">
       <div class="card">
-        <span class="card-icon">🎯</span>
-        <h3>Decoder as Geometry</h3>
-        <p>The VAE decoder encodes the data manifold's shape in its weights. Latent-XAI extracts it — don't throw it away!</p>
+        <span class="card-icon">🗄️</span>
+        <h3>Decoder as Geometric Repository</h3>
+        <p>A decoder that reconstructs faithfully must have encoded the manifold's geometry in its weights — its curvature, principal directions, and branching structure. This geometric information survives even in a vanilla VAE with no specialised priors. Latent-XAI unlocks it.</p>
       </div>
       <div class="card">
-        <span class="card-icon">∇</span>
-        <h3>Jacobian Tangent Spaces</h3>
-        <p>Compute J = ∇ψ(z) at each latent point. SVD extracts the H principal tangent directions without local PCA noise.</p>
+        <span class="card-icon">∂</span>
+        <h3>Jacobian over Local PCA</h3>
+        <p>Rather than estimating tangent spaces from local PCA — which is sensitive to sampling density and noise — Latent-XAI computes the Jacobian <em>J = ∇ψ(z)</em> of the decoder at each latent point. Its top <em>H</em> singular vectors form data-driven, analytically exact tangent frames directly from the model weights.</p>
       </div>
       <div class="card">
         <span class="card-icon">🌐</span>
-        <h3>Connection Laplacian</h3>
-        <p>Aligns local tangent frames across the neighbourhood graph to find globally smooth parallel vector fields.</p>
+        <h3>Parallel Transport Across Gauges</h3>
+        <p>Tangent spaces at different points live in different local coordinate systems ("gauges") and cannot be directly compared. The discrete Connection Laplacian aligns them via parallel transport maps <em>Q<sub>ij</sub> = T<sub>i</sub><sup>⊤</sup>T<sub>j</sub></em>, enabling globally coherent directional analysis across the entire manifold.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">📊</span>
+        <h3>Spectral Manifold Diagnosis</h3>
+        <p>The eigenvalue spectrum of the Connection Laplacian diagnoses the manifold's intrinsic structure. Spectral gaps identify the number of smooth global coordinate charts; higher eigenvectors reveal curvature, torsion, and deformation — providing a quantitative tool for comparing and validating VAE representations.</p>
+      </div>
+      <div class="card">
+        <span class="card-icon">🛡️</span>
+        <h3>Encoder-Agnostic Geometry Recovery</h3>
+        <p>The encoder often distorts or flattens the data manifold — a Gaussian prior compresses a Swiss Roll into a disk, hiding all curvature. Yet Latent-XAI recovers the true geometry from the decoder regardless of this distortion: curvature, potential wells, and bifurcation directions are all recovered even when the latent space conceals them.</p>
       </div>
       <div class="card">
         <span class="card-icon">🔍</span>
-        <h3>Global XAI</h3>
-        <p>Goes beyond point-wise sensitivity (SHAP/LRP) to neighbourhood-level manifold geometry — more informative and robust.</p>
-      </div>
-      <div class="card">
-        <span class="card-icon">⚖️</span>
-        <h3>EU AI Act Ready</h3>
-        <p>Enables independent forensic auditing of high-risk medical AI systems without access to original training data.</p>
-      </div>
-      <div class="card">
-        <span class="card-icon">🔧</span>
-        <h3>sklearn-style API</h3>
-        <p>Familiar <code>fit()</code> / <code>fit_transform()</code> interface. Works with any differentiable decoder.</p>
+        <h3>Neighbourhood over Point</h3>
+        <p>Standard XAI (SHAP, LRP) asks: <em>"which features drove this single output?"</em> Latent-XAI asks: <em>"what are the dominant, linearly independent directions that characterise this data point's neighbourhood on the manifold?"</em> This shift from isolated sensitivity to local geometric charts gives each sample context within its manifold structure.</p>
       </div>
     </div>
 
