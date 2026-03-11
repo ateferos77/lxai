@@ -1,270 +1,290 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Latent-XAI — Documentation</title>
-  <meta name="description" content="Latent-XAI: A post-hoc geometric framework that uses the Jacobian of the VAE decoder to build a Connection Laplacian and extract intrinsic manifold geometry." />
+  <meta name="description"
+    content="Latent-XAI: A post-hoc geometric framework that uses the Jacobian of the VAE decoder to build a Connection Laplacian and extract intrinsic manifold geometry." />
   <link rel="stylesheet" href="css/style.css" />
 </head>
+
 <body>
 
-<button class="sidebar-toggle" id="sidebar-toggle" title="Toggle navigation">☰</button>
-<div class="sidebar-overlay" id="sidebar-overlay"></div>
+  <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle navigation">☰</button>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-<!-- ═══ LEFT SIDEBAR ═══ -->
-<nav class="sidebar" role="navigation" aria-label="Main navigation">
-  <a class="sidebar-logo" href="index.html">
-    <div class="sidebar-logo-icon">🧬</div>
-    <div class="sidebar-logo-text">
-      Latent-XAI
-      <span>v1.0 · documentation</span>
+  <!-- ═══ LEFT SIDEBAR ═══ -->
+  <nav class="sidebar" role="navigation" aria-label="Main navigation">
+    <a class="sidebar-logo" href="index.html">
+      <div class="sidebar-logo-icon">🧬</div>
+      <div class="sidebar-logo-text">
+        Latent-XAI
+        <span>v1.0 · documentation</span>
+      </div>
+    </a>
+    <div class="sidebar-search">
+      <input type="search" placeholder="Search docs…" aria-label="Search documentation" />
     </div>
-  </a>
-  <div class="sidebar-search">
-    <input type="search" placeholder="Search docs…" aria-label="Search documentation" />
-  </div>
-  <div class="sidebar-nav">
-    <div class="sidebar-section-title">General</div>
-    <a href="index.html" class="active">🏠 Overview</a>
-    <a href="installation.html">📦 Installation</a>
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-section-title">API Reference</div>
-    <a href="api/lxai.html">🔬 lxai (core class)</a>
-    <a href="api/plotting.html">📊 plotting</a>
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-section-title">Tutorials</div>
-    <a href="tutorials/swiss_roll.html">🌀 Swiss Roll</a>
-    <a href="tutorials/twin_peaks.html">⛰️ Twin Peaks</a>
-    <a href="tutorials/alanine_dipeptide.html">🧪 Alanine Dipeptide</a>
-    <a href="tutorials/pancreas.html">🔬 Pancreatic scRNA-seq</a>
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-section-title">About</div>
-    <a href="https://github.com" target="_blank" rel="noopener">🔗 GitHub ↗</a>
-    <a href="#" id="paper-link">📄 Paper</a>
-  </div>
-</nav>
-
-<!-- ═══ MAIN ═══ -->
-<div class="main-wrapper">
-  <div class="content-header">
-    <div class="header-links">
-      <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
-      <a href="https://arxiv.org" target="_blank" rel="noopener">Paper</a>
+    <div class="sidebar-nav">
+      <div class="sidebar-section-title">General</div>
+      <a href="index.html" class="active">🏠 Overview</a>
+      <a href="installation.html">📦 Installation</a>
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section-title">API Reference</div>
+      <a href="api/lxai.html">🔬 lxai (core class)</a>
+      <a href="api/plotting.html">📊 plotting</a>
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section-title">Tutorials</div>
+      <a href="tutorials/swiss_roll.html">🌀 Swiss Roll</a>
+      <a href="tutorials/twin_peaks.html">⛰️ Twin Peaks</a>
+      <a href="tutorials/alanine_dipeptide.html">🧪 Alanine Dipeptide</a>
+      <a href="tutorials/pancreas.html">🔬 Pancreatic scRNA-seq</a>
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section-title">About</div>
+      <a href="https://github.com" target="_blank" rel="noopener">🔗 GitHub ↗</a>
+      <a href="#" id="paper-link">📄 Paper</a>
     </div>
-    <span class="version-badge">v1.0 stable</span>
-    <button class="theme-toggle" id="theme-toggle" title="Toggle dark mode">🌙</button>
-  </div>
+  </nav>
 
-  <div class="content">
+  <!-- ═══ MAIN ═══ -->
+  <div class="main-wrapper">
+    <div class="content-header">
+      <div class="header-links">
+        <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://arxiv.org" target="_blank" rel="noopener">Paper</a>
+      </div>
+      <span class="version-badge">v1.0 stable</span>
+      <button class="theme-toggle" id="theme-toggle" title="Toggle dark mode">🌙</button>
+    </div>
 
-    <!-- ── HERO ── -->
-    <div class="hero">
-      <div class="hero-badge">📖 NeurIPS/ECML 2025 · Zuse Institute Berlin</div>
-      <h1>Stop Throwing Away Your <mark>Decoder</mark></h1>
-      <p class="hero-subtitle">
-        Latent-XAI extracts the learnt local coordinate system of a VAE decoder using the
-        <strong style="color:#93c5fd">Connection Laplacian</strong> — turning the "black box"
-        of generative modelling into a transparent geometric map.
+    <div class="content">
+
+      <!-- ── HERO ── -->
+      <div class="hero">
+        <div class="hero-badge">📖 NeurIPS/ECML 2025 · Zuse Institute Berlin</div>
+        <h1>Stop Throwing Away Your <mark>Decoder</mark></h1>
+        <p class="hero-subtitle">
+          Latent-XAI extracts the learnt local coordinate system of a VAE decoder using the
+          <strong style="color:#93c5fd">Connection Laplacian</strong> — turning the "black box"
+          of generative modelling into a transparent geometric map.
+        </p>
+        <div class="hero-buttons">
+          <a class="btn btn-primary" href="tutorials/swiss_roll.html">🚀 Get Started</a>
+          <a class="btn btn-secondary" href="installation.html">📦 Install</a>
+          <a class="btn btn-secondary" href="api/lxai.html">📖 API Docs</a>
+        </div>
+      </div>
+
+      <!-- ── ABSTRACT ── -->
+      <h2 id="abstract">Abstract</h2>
+      <p>
+        <strong>Variational Autoencoders (VAEs)</strong> have become central tools for analysing high-dimensional data
+        in single-cell biology, molecular dynamics, and clinical research. By compressing data through an encoder and
+        reconstructing it through a decoder, they learn a compact latent representation of the underlying data manifold.
+        Yet in practice, once training is complete, the decoder is almost universally discarded — treated as a mere
+        utility that served its purpose and is no longer needed.
       </p>
-      <div class="hero-buttons">
-        <a class="btn btn-primary" href="tutorials/swiss_roll.html">🚀 Get Started</a>
-        <a class="btn btn-secondary" href="installation.html">📦 Install</a>
-        <a class="btn btn-secondary" href="api/lxai.html">📖 API Docs</a>
-      </div>
-    </div>
-
-    <!-- ── ABSTRACT ── -->
-    <h2 id="abstract">Abstract</h2>
-    <p>
-      <strong>Variational Autoencoders (VAEs)</strong> have become central tools for analysing high-dimensional data
-      in single-cell biology, molecular dynamics, and clinical research. By compressing data through an encoder and
-      reconstructing it through a decoder, they learn a compact latent representation of the underlying data manifold.
-      Yet in practice, once training is complete, the decoder is almost universally discarded — treated as a mere
-      utility that served its purpose and is no longer needed.
-    </p>
-    <p>
-      This is a missed opportunity. A decoder that can faithfully reconstruct high-dimensional data from a
-      low-dimensional code must, by necessity, have encoded the geometric structure of that data within its weights.
-      The shape of the manifold — its curvature, its principal directions, its branching structure — is all there,
-      stored implicitly in the parameters of the network. <strong>Latent-XAI</strong> is built on this observation:
-      rather than discarding the decoder, we use it as a <em>geometric map</em> of the data manifold.
-    </p>
-    <p>
-      At the heart of Latent-XAI is a fundamental shift in how we think about explainability for generative models.
-      Existing XAI approaches for VAEs focus on the encoder — asking which input features are most sensitive to
-      each latent variable. But if the latent space does not align with the true intrinsic directions of the data,
-      this sensitivity is uninformative. Instead of asking <em>"which single feature drives this latent code?"</em>,
-      Latent-XAI asks: <em>"what are the coherent, dominant directions of change that characterise the local
-      neighbourhood of this data point?"</em>
-    </p>
-    <p>
-      To recover these directions, Latent-XAI computes the <strong>Jacobian of the decoder</strong> at each
-      latent point — the matrix that describes how a small perturbation in the latent code translates into change
-      in the ambient data space. These Jacobian-derived local tangent frames are then aligned across the data
-      manifold using a <strong>discrete Connection Laplacian</strong>, a spectral operator that propagates
-      directional information consistently across neighbouring points. Its eigenvectors are
-      <strong>parallel vector fields</strong>: globally coherent directions of change that collectively form
-      intrinsic coordinate charts of the manifold — directly in the ambient feature space, not in the latent space.
-    </p>
-    <p>
-      This approach works even when the encoder severely distorts the latent representation, because the geometry
-      is recovered from the <em>decoder</em>, not the encoder. We validate this across four datasets of increasing
-      complexity: the <strong>Swiss Roll</strong> and <strong>Twin Peaks</strong> synthetic manifolds (recovering
-      exact intrinsic coordinates and curvature-driven spiral fields), <strong>Alanine Dipeptide</strong>
-      (identifying free-energy potential wells in 66-dimensional molecular dynamics data invisible in the latent
-      space), and a <strong>pancreatic scRNA-seq</strong> dataset (delineating Alpha and Beta differentiation
-      lineages as perfectly orthogonal directions — using spliced counts alone, without RNA velocity). Because
-      Latent-XAI requires only a trained decoder and a query dataset, it can be applied post-hoc to any pretrained
-      differentiable model, offering an independent and quantitative tool for characterising and comparing
-      learnt VAE representations.
-    </p>
-
-    <!-- ── CONCEPT FIGURE ── -->
-    <div class="figure-block">
-      <img src="assets/figures/concept_fig.png" alt="Latent-XAI concept diagram showing the VAE pipeline, Jacobian tangent space, and Connection Laplacian vector fields" />
-      <p class="figure-caption">
-        <strong>Fig. 1 — Latent-XAI concept.</strong>
-        <em>Top row:</em> A VAE encodes data into a latent representation, then the Jacobian of the decoder defines the tangent space.
-        <em>Bottom row:</em> Given a neighbourhood of points, decoder-derived tangents build a discrete Connection Laplacian,
-        whose eigenvectors characterise flows over the manifold.
+      <p>
+        This is a missed opportunity. A decoder that can faithfully reconstruct high-dimensional data from a
+        low-dimensional code must, by necessity, have encoded the geometric structure of that data within its weights.
+        The shape of the manifold — its curvature, its principal directions, its branching structure — is all there,
+        stored implicitly in the parameters of the network. <strong>Latent-XAI</strong> is built on this observation:
+        rather than discarding the decoder, we use it as a <em>geometric map</em> of the data manifold.
       </p>
-    </div>
+      <p>
+        At the heart of Latent-XAI is a fundamental shift in how we think about explainability for generative models.
+        Existing XAI approaches for VAEs focus on the encoder — asking which input features are most sensitive to
+        each latent variable. But if the latent space does not align with the true intrinsic directions of the data,
+        this sensitivity is uninformative. Instead of asking <em>"which single feature drives this latent code?"</em>,
+        Latent-XAI asks: <em>"what are the coherent, dominant directions of change that characterise the local
+          neighbourhood of this data point?"</em>
+      </p>
+      <p>
+        To recover these directions, Latent-XAI computes the <strong>Jacobian of the decoder</strong> at each
+        latent point — the matrix that describes how a small perturbation in the latent code translates into change
+        in the ambient data space. These Jacobian-derived local tangent frames are then aligned across the data
+        manifold using a <strong>discrete Connection Laplacian</strong>, a spectral operator that propagates
+        directional information consistently across neighbouring points. Its eigenvectors are
+        <strong>parallel vector fields</strong>: globally coherent directions of change that collectively form
+        intrinsic coordinate charts of the manifold — directly in the ambient feature space, not in the latent space.
+      </p>
+      <p>
+        This approach works even when the encoder severely distorts the latent representation, because the geometry
+        is recovered from the <em>decoder</em>, not the encoder. We validate this across four datasets of increasing
+        complexity: the <strong>Swiss Roll</strong> and <strong>Twin Peaks</strong> synthetic manifolds (recovering
+        exact intrinsic coordinates and curvature-driven spiral fields), <strong>Alanine Dipeptide</strong>
+        (identifying free-energy potential wells in 66-dimensional molecular dynamics data invisible in the latent
+        space), and a <strong>pancreatic scRNA-seq</strong> dataset (delineating Alpha and Beta differentiation
+        lineages as perfectly orthogonal directions — using spliced counts alone, without RNA velocity). Because
+        Latent-XAI requires only a trained decoder and a query dataset, it can be applied post-hoc to any pretrained
+        differentiable model, offering an independent and quantitative tool for characterising and comparing
+        learnt VAE representations.
+      </p>
 
-    <!-- ── KEY IDEAS ── -->
-    <h2 id="key-ideas">Key Ideas</h2>
-    <div class="cards-grid">
-      <div class="card">
-        <span class="card-icon">🗄️</span>
-        <h3>Decoder as Geometric Repository</h3>
-        <p>A decoder that reconstructs faithfully must have encoded the manifold's geometry in its weights — its curvature, principal directions, and branching structure. This geometric information survives even in a vanilla VAE with no specialised priors. Latent-XAI unlocks it.</p>
+      <!-- ── CONCEPT FIGURE ── -->
+      <div class="figure-block">
+        <img src="assets/figures/concept_fig.png"
+          alt="Latent-XAI concept diagram showing the VAE pipeline, Jacobian tangent space, and Connection Laplacian vector fields" />
+        <p class="figure-caption">
+          <strong>Fig. 1 — Latent-XAI concept.</strong>
+          <em>Top row:</em> A VAE encodes data into a latent representation, then the Jacobian of the decoder defines
+          the tangent space.
+          <em>Bottom row:</em> Given a neighbourhood of points, decoder-derived tangents build a discrete Connection
+          Laplacian,
+          whose eigenvectors characterise flows over the manifold.
+        </p>
       </div>
-      <div class="card">
-        <span class="card-icon">∂</span>
-        <h3>Jacobian over Local PCA</h3>
-        <p>Rather than estimating tangent spaces from local PCA — which is sensitive to sampling density and noise — Latent-XAI computes the Jacobian <em>J = ∇ψ(z)</em> of the decoder at each latent point. Its top <em>H</em> singular vectors (via SVD) form model-derived, noise-robust tangent frames that encode the local geometry directly from the decoder weights.</p>
-      </div>
-      <div class="card">
-        <span class="card-icon">🌐</span>
-        <h3>Parallel Transport Across Gauges</h3>
-        <p>Tangent spaces at different points live in different local coordinate systems ("gauges") and cannot be directly compared. The discrete Connection Laplacian aligns them via parallel transport maps <em>Q<sub>ij</sub> = T<sub>i</sub><sup>⊤</sup>T<sub>j</sub></em>, enabling globally coherent directional analysis across the entire manifold.</p>
-      </div>
-      <div class="card">
-        <span class="card-icon">📊</span>
-        <h3>Spectral Manifold Diagnosis</h3>
-        <p>The eigenvalue spectrum of the Connection Laplacian diagnoses the manifold's intrinsic structure. Spectral gaps reveal the number of smooth global coordinate charts — two for the Swiss Roll, four for Twin Peaks. Higher eigenvectors capture curvature and deformation: spiral fields around energy minima, saddle-point behaviour near potential wells, and bifurcation directions in branching lineages.</p>
-      </div>
-      <div class="card">
-        <span class="card-icon">🛡️</span>
-        <h3>Encoder-Agnostic Geometry Recovery</h3>
-        <p>The encoder often distorts or flattens the data manifold — a Gaussian prior compresses a Swiss Roll into a disk, hiding all curvature. Yet Latent-XAI recovers the true geometry from the decoder regardless of this distortion: curvature, potential wells, and bifurcation directions are all recovered even when the latent space conceals them.</p>
-      </div>
-      <div class="card">
-        <span class="card-icon">🔍</span>
-        <h3>Neighbourhood over Point</h3>
-        <p>Standard XAI (SHAP, LRP) asks: <em>"which features drove this single output?"</em> Latent-XAI asks: <em>"what are the dominant, linearly independent directions that characterise this data point's neighbourhood on the manifold?"</em> This shift from isolated sensitivity to local geometric charts gives each sample context within its manifold structure.</p>
-      </div>
-    </div>
 
-    <!-- ── QUICK START ── -->
-    <h2 id="quick-start">Quick Start</h2>
-    <p>Fit Latent-XAI to a trained VAE decoder. The decoder must be a <strong>callable PyTorch module</strong> and <code>Z</code> a NumPy array of shape <code>(N, L)</code>:</p>
-    <div class="code-block-wrapper">
-      <div class="code-block-header">
-        <span class="code-lang-badge">python</span>
-        <button class="copy-btn">⧉ Copy</button>
+      <!-- ── KEY IDEAS ── -->
+      <h2 id="key-ideas">Key Ideas</h2>
+      <div class="cards-grid">
+        <div class="card">
+          <span class="card-icon">🗄️</span>
+          <h3>Decoder as Geometric Repository</h3>
+          <p>A decoder that reconstructs faithfully must have encoded the manifold's geometry in its weights — its
+            curvature, principal directions, and branching structure. This geometric information survives even in a
+            vanilla VAE with no specialised priors. Latent-XAI unlocks it.</p>
+        </div>
+        <div class="card">
+          <span class="card-icon">∂</span>
+          <h3>Jacobian over Local PCA</h3>
+          <p>Rather than estimating tangent spaces from local PCA — which is sensitive to sampling density and noise —
+            Latent-XAI computes the Jacobian <em>J = ∇ψ(z)</em> of the decoder at each latent point. Its top <em>H</em>
+            singular vectors (via SVD) form model-derived, noise-robust tangent frames that encode the local geometry
+            directly from the decoder weights.</p>
+        </div>
+        <div class="card">
+          <span class="card-icon">🌐</span>
+          <h3>Parallel Transport Across Gauges</h3>
+          <p>Tangent spaces at different points live in different local coordinate systems ("gauges") and cannot be
+            directly compared. The discrete Connection Laplacian aligns them via parallel transport maps
+            <em>Q<sub>ij</sub> = T<sub>i</sub><sup>⊤</sup>T<sub>j</sub></em>, enabling globally coherent directional
+            analysis across the entire manifold.</p>
+        </div>
+        <div class="card">
+          <span class="card-icon">📊</span>
+          <h3>Spectral Manifold Diagnosis</h3>
+          <p>The eigenvalue spectrum of the Connection Laplacian diagnoses the manifold's intrinsic structure. Spectral
+            gaps reveal the number of smooth global coordinate charts — two for the Swiss Roll, four for Twin Peaks.
+            Higher eigenvectors capture curvature and deformation: spiral fields around energy minima, saddle-point
+            behaviour near potential wells, and bifurcation directions in branching lineages.</p>
+        </div>
+        <div class="card">
+          <span class="card-icon">🛡️</span>
+          <h3>Encoder-Agnostic Geometry Recovery</h3>
+          <p>The encoder often distorts or flattens the data manifold — a Gaussian prior compresses a Swiss Roll into a
+            disk, hiding all curvature. Yet Latent-XAI recovers the true geometry from the decoder regardless of this
+            distortion: curvature, potential wells, and bifurcation directions are all recovered even when the latent
+            space conceals them.</p>
+        </div>
+        <div class="card">
+          <span class="card-icon">🔍</span>
+          <h3>Neighbourhood over Point</h3>
+          <p>Standard XAI (SHAP, LRP) asks: <em>"which features drove this single output?"</em> Latent-XAI asks:
+            <em>"what are the dominant, linearly independent directions that characterise this data point's
+              neighbourhood on the manifold?"</em> This shift from isolated sensitivity to local geometric charts gives
+            each sample context within its manifold structure.</p>
+        </div>
       </div>
-      <pre><code><span class="tok-kw">import</span> latentxai
-<span class="tok-kw">import</span> torch
-<span class="tok-kw">import</span> numpy <span class="tok-kw">as</span> np
 
-<span class="tok-cm"># Assume 'decoder' is your trained PyTorch VAE decoder module</span>
-<span class="tok-cm"># Assume 'Z' is a NumPy array of shape (N, L) containing latent codes</span>
+      <!-- ── QUICK START ── -->
+      <h2 id="quick-start">Quick Start</h2>
+      <p>Fit Latent-XAI to a trained VAE decoder. The decoder must be a <strong>callable PyTorch module</strong> and
+        <code>Z</code> a NumPy array of shape <code>(N, L)</code>:</p>
+      <div class="code-block-wrapper">
+        <div class="code-block-header">
+          <span class="code-lang-badge">python</span>
+          <button class="copy-btn">⧉ Copy</button>
+        </div>
+        <pre><code><span class="tok-kw">import</span> latentxai
 
-<span class="tok-cm"># Initialize Latent-XAI model</span>
+<span class="tok-cm"># decoder : callable PyTorch module (your trained VAE decoder)</span>
+<span class="tok-cm"># Z       : np.ndarray of shape (N, L) — latent codes</span>
 model <span class="tok-op">=</span> latentxai.lxai(
-    decoder<span class="tok-op">=</span>decoder,            <span class="tok-cm"># Your PyTorch callable decoder</span>
-    n_neighbors<span class="tok-op">=</span><span class="tok-num">20</span>,             <span class="tok-cm"># k for KNN graph construction</span>
-    n_components<span class="tok-op">=</span><span class="tok-num">10</span>,            <span class="tok-cm"># Number of eigenvectors to compute</span>
-    principle_tangent_dims<span class="tok-op">=</span><span class="tok-num">2</span>,   <span class="tok-cm"># Intrinsic dimensionality H ≪ L</span>
+    decoder<span class="tok-op">=</span>decoder,            <span class="tok-cm"># PyTorch callable</span>
+    n_neighbors<span class="tok-op">=</span><span class="tok-num">20</span>,             <span class="tok-cm"># k for KNN graph</span>
+    n_components<span class="tok-op">=</span><span class="tok-num">10</span>,            <span class="tok-cm"># number of eigenvectors to compute</span>
+    principle_tangent_dims<span class="tok-op">=</span><span class="tok-num">2</span>,   <span class="tok-cm"># intrinsic dimensionality H ≪ L</span>
     sigma<span class="tok-op">=</span><span class="tok-num">0.3</span>,                  <span class="tok-cm"># Gaussian kernel width (or 'auto')</span>
 )
-
-<span class="tok-cm"># Fit the model to your latent codes</span>
 model.fit(Z)  <span class="tok-cm"># Z: np.ndarray (N, L)</span>
 
 <span class="tok-cm"># ── Fitted attributes ──────────────────────────────────────────</span>
 eigenvalues   <span class="tok-op">=</span> model.eigenvalues_    <span class="tok-cm"># (n_components,)      — Connection Laplacian spectrum</span>
-vector_fields <span class="tok-op">=</span> model.PVF_on_X_        <span class="tok-cm"># (n_components, N, D) — parallel vector fields in ambient space</span>
+vector_fields <span class="tok-op">=</span> model.PVF_on_X_        <span class="tok-cm"># (n_components, N, D) — parallel vector fields, ambient space</span>
 
 <span class="tok-cm"># ── Access individual vector fields by index ───────────────────</span>
 first_vf  <span class="tok-op">=</span> model.PVF_on_X_[<span class="tok-num">0</span>]  <span class="tok-cm"># (N, D) — smoothest global direction</span>
 second_vf <span class="tok-op">=</span> model.PVF_on_X_[<span class="tok-num">1</span>]  <span class="tok-cm"># (N, D) — next orthogonal direction</span>
 
 <span class="tok-cm"># ── Project a vector field back to latent space ─────────────────</span>
-<span class="tok-cm"># Ensure Z is on the correct device for the decoder</span>
-Z_tensor <span class="tok-op">=</span> torch.tensor(Z, dtype<span class="tok-op">=</span>torch.float32).to(<span class="tok-str">'cuda'</span>)
+<span class="tok-kw">import</span> torch
 v_latent <span class="tok-op">=</span> model.project_fields_to_latent(
-    Z_tensor, model.PVF_on_X_[<span class="tok-num">0</span>]
+    torch.tensor(Z).to(<span class="tok-str">'cuda'</span>), model.PVF_on_X_[<span class="tok-num">0</span>]
 )  <span class="tok-cm"># (N, L)</span></code></pre>
-    </div>
-
-    <div class="admonition tip">
-      <div class="admonition-title">💡 fit_transform() shortcut</div>
-      <p>Use <code>fit_transform(Z)</code> to fit and immediately return the first parallel vector field
-      in ambient space as an <code>(N, D)</code> array — equivalent to <code>model.fit(Z).PVF_on_X_[0]</code>.</p>
-    </div>
-
-    <div class="admonition tip">
-      <div class="admonition-title">⚙️ Requirements</div>
-      <p>Latent-XAI uses <strong>CuPy</strong> for the sparse eigendecomposition — a CUDA-capable GPU is required.
-      The decoder must be differentiable; ELU activations are recommended over ReLU for smooth tangent spaces
-      (see <a href="api/lxai.html">API docs</a>).</p>
-    </div>
-
-    <!-- ── FOUR EXPERIMENTS ── -->
-    <h2 id="experiments">Experiments</h2>
-    <p>
-      We validate Latent-XAI across <strong>four datasets of increasing complexity</strong>,
-      from simple synthetic manifolds to real-world single-cell RNA-seq data:
-    </p>
-
-    <div class="cards-grid">
-      <div class="card">
-        <span class="card-icon">🌀</span>
-        <h3>Swiss Roll</h3>
-        <p>Flat 2D manifold · recovers the length and width coordinate fields.</p>
-        <a href="tutorials/swiss_roll.html" style="font-size:0.8rem;margin-top:10px;display:inline-block">Tutorial →</a>
       </div>
-      <div class="card">
-        <span class="card-icon">⛰️</span>
-        <h3>Twin Peaks</h3>
-        <p>High-curvature surface · captures spiral vector fields around peaks.</p>
-        <a href="tutorials/twin_peaks.html" style="font-size:0.8rem;margin-top:10px;display:inline-block">Tutorial →</a>
-      </div>
-      <div class="card">
-        <span class="card-icon">🧪</span>
-        <h3>Alanine Dipeptide</h3>
-        <p>66D → 2D molecular dynamics · detects free-energy potential wells.</p>
-        <a href="tutorials/alanine_dipeptide.html" style="font-size:0.8rem;margin-top:10px;display:inline-block">Tutorial →</a>
-      </div>
-      <div class="card">
-        <span class="card-icon">🔬</span>
-        <h3>Pancreatic scRNA-seq</h3>
-        <p>3000 genes · 2100 cells · delineates Alpha/Beta differentiation lineages.</p>
-        <a href="tutorials/pancreas.html" style="font-size:0.8rem;margin-top:10px;display:inline-block">Tutorial →</a>
-      </div>
-    </div>
 
-    <!-- ── CITATION ── -->
-    <h2 id="citation">Citation</h2>
-    <p>If you use Latent-XAI in your research, please cite:</p>
-    <div class="code-block-wrapper">
-      <div class="code-block-header">
-        <span class="code-lang-badge">bibtex</span>
-        <button class="copy-btn">⧉ Copy</button>
+      <div class="admonition tip">
+        <div class="admonition-title">💡 fit_transform() shortcut</div>
+        <p>Use <code>fit_transform(Z)</code> to fit and immediately return the first parallel vector field
+          in ambient space as an <code>(N, D)</code> array — equivalent to <code>model.fit(Z).PVF_on_X_[0]</code>.</p>
       </div>
-      <pre><code>@inproceedings{sunkara2025latentxai,
+
+      <div class="admonition tip">
+        <div class="admonition-title">⚙️ Requirements</div>
+        <p>Latent-XAI uses <strong>CuPy</strong> for the sparse eigendecomposition — a CUDA-capable GPU is required.
+          The decoder must be differentiable; ELU activations are recommended over ReLU for smooth tangent spaces
+          (see <a href="api/lxai.html">API docs</a>).</p>
+      </div>
+
+      <!-- ── FOUR EXPERIMENTS ── -->
+      <h2 id="experiments">Experiments</h2>
+      <p>
+        We validate Latent-XAI across <strong>four datasets of increasing complexity</strong>,
+        from simple synthetic manifolds to real-world single-cell RNA-seq data:
+      </p>
+
+      <div class="cards-grid">
+        <div class="card">
+          <span class="card-icon">🌀</span>
+          <h3>Swiss Roll</h3>
+          <p>Flat 2D manifold · recovers the length and width coordinate fields.</p>
+          <a href="tutorials/swiss_roll.html" style="font-size:0.8rem;margin-top:10px;display:inline-block">Tutorial
+            →</a>
+        </div>
+        <div class="card">
+          <span class="card-icon">⛰️</span>
+          <h3>Twin Peaks</h3>
+          <p>High-curvature surface · captures spiral vector fields around peaks.</p>
+          <a href="tutorials/twin_peaks.html" style="font-size:0.8rem;margin-top:10px;display:inline-block">Tutorial
+            →</a>
+        </div>
+        <div class="card">
+          <span class="card-icon">🧪</span>
+          <h3>Alanine Dipeptide</h3>
+          <p>66D → 2D molecular dynamics · detects free-energy potential wells.</p>
+          <a href="tutorials/alanine_dipeptide.html"
+            style="font-size:0.8rem;margin-top:10px;display:inline-block">Tutorial →</a>
+        </div>
+        <div class="card">
+          <span class="card-icon">🔬</span>
+          <h3>Pancreatic scRNA-seq</h3>
+          <p>3000 genes · 2100 cells · delineates Alpha/Beta differentiation lineages.</p>
+          <a href="tutorials/pancreas.html" style="font-size:0.8rem;margin-top:10px;display:inline-block">Tutorial →</a>
+        </div>
+      </div>
+
+      <!-- ── CITATION ── -->
+      <h2 id="citation">Citation</h2>
+      <p>If you use Latent-XAI in your research, please cite:</p>
+      <div class="code-block-wrapper">
+        <div class="code-block-header">
+          <span class="code-lang-badge">bibtex</span>
+          <button class="copy-btn">⧉ Copy</button>
+        </div>
+        <pre><code>@inproceedings{sunkara2025latentxai,
   title     = {Stop throwing away your Decoder; extract the learnt
                local coordinate system using {Latent-XAI}},
   author    = {Sunkara, Vikram and Rostami, Atefe and
@@ -273,45 +293,46 @@ v_latent <span class="tok-op">=</span> model.project_fields_to_latent(
   year      = {2025},
   institution = {Zuse Institute Berlin}
 }</code></pre>
-    </div>
+      </div>
 
-    <!-- ── AUTHORS ── -->
-    <h2 id="authors">Authors</h2>
-    <p>
-      <strong>Vikram Sunkara</strong><sup>1,2,3</sup>,
-      <strong>Atefe Rostami</strong><sup>1</sup>,
-      <strong>Christoph von Tycowicz</strong><sup>1</sup>,
-      <strong>Christof Schütte</strong><sup>1,3</sup>
-    </p>
-    <p style="font-size:0.85rem;color:var(--text-muted);margin-top:6px">
-      <sup>1</sup> Visual and Data Centric Computing, Zuse Institute Berlin, Germany ·
-      <sup>2</sup> German Rheumatology Research Center (DRFZ), Berlin, Germany ·
-      <sup>3</sup> Free University Berlin, Germany
-    </p>
-    <p style="font-size:0.85rem;color:var(--text-muted)">
-      Supported by the Berlin Mathematics Research Center MATH+ (EXC-2046/1, project ID: 390685689).
-    </p>
+      <!-- ── AUTHORS ── -->
+      <h2 id="authors">Authors</h2>
+      <p>
+        <strong>Vikram Sunkara</strong><sup>1,2,3</sup>,
+        <strong>Atefe Rostami</strong><sup>1</sup>,
+        <strong>Christoph von Tycowicz</strong><sup>1</sup>,
+        <strong>Christof Schütte</strong><sup>1,3</sup>
+      </p>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-top:6px">
+        <sup>1</sup> Visual and Data Centric Computing, Zuse Institute Berlin, Germany ·
+        <sup>2</sup> German Rheumatology Research Center (DRFZ), Berlin, Germany ·
+        <sup>3</sup> Free University Berlin, Germany
+      </p>
+      <p style="font-size:0.85rem;color:var(--text-muted)">
+        Supported by the Berlin Mathematics Research Center MATH+ (EXC-2046/1, project ID: 390685689).
+      </p>
 
-    <div class="content-footer">
-      <span>Built for the Latent-XAI project · Zuse Institute Berlin</span>
-      <span><a href="https://github.com" target="_blank" rel="noopener">GitHub ↗</a></span>
-    </div>
-  </div><!-- /.content -->
-</div><!-- /.main-wrapper -->
+      <div class="content-footer">
+        <span>Built for the Latent-XAI project · Zuse Institute Berlin</span>
+        <span><a href="https://github.com" target="_blank" rel="noopener">GitHub ↗</a></span>
+      </div>
+    </div><!-- /.content -->
+  </div><!-- /.main-wrapper -->
 
-<!-- ═══ RIGHT TOC ═══ -->
-<aside class="toc-sidebar" aria-label="On this page">
-  <div class="toc-title">On this page</div>
-  <ul class="toc-list">
-    <li><a href="#abstract">Abstract</a></li>
-    <li><a href="#key-ideas">Key Ideas</a></li>
-    <li><a href="#quick-start">Quick Start</a></li>
-    <li><a href="#experiments">Experiments</a></li>
-    <li><a href="#citation">Citation</a></li>
-    <li><a href="#authors">Authors</a></li>
-  </ul>
-</aside>
+  <!-- ═══ RIGHT TOC ═══ -->
+  <aside class="toc-sidebar" aria-label="On this page">
+    <div class="toc-title">On this page</div>
+    <ul class="toc-list">
+      <li><a href="#abstract">Abstract</a></li>
+      <li><a href="#key-ideas">Key Ideas</a></li>
+      <li><a href="#quick-start">Quick Start</a></li>
+      <li><a href="#experiments">Experiments</a></li>
+      <li><a href="#citation">Citation</a></li>
+      <li><a href="#authors">Authors</a></li>
+    </ul>
+  </aside>
 
-<script src="js/main.js"></script>
+  <script src="js/main.js"></script>
 </body>
+
 </html>
