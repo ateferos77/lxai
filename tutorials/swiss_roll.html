@@ -94,29 +94,31 @@ print(<span class="tok-str">f"Training samples: {X.shape[0]}"</span>)  <span cla
       <pre><code><span class="tok-kw">import</span> torch
 <span class="tok-kw">import</span> torch.nn <span class="tok-kw">as</span> nn
 
-<span class="tok-kw">class</span> <span class="tok-cls">Encoder</span>(nn.Module):
+<span class="tok-kw">class</span> <span class="tok-cls">VAE</span>(nn.Module):
     <span class="tok-kw">def</span> <span class="fn-name">__init__</span>(self, in_dim<span class="tok-op">=</span><span class="tok-num">3</span>, lat_dim<span class="tok-op">=</span><span class="tok-num">2</span>, h<span class="tok-op">=</span><span class="tok-num">512</span>):
         <span class="tok-kw">super</span>().__init__()
-        self.net <span class="tok-op">=</span> nn.Sequential(
+        self.encoder <span class="tok-op">=</span> nn.Sequential(
             nn.Linear(in_dim, h), nn.LeakyReLU(),
             nn.Linear(h, h),      nn.LeakyReLU(),
             nn.Linear(h, h),      nn.LeakyReLU(),
             nn.Linear(h, h),      nn.LeakyReLU(),
         )
-        self.mu  <span class="tok-op">=</span> nn.Linear(h, lat_dim)
-        self.log_var <span class="tok-op">=</span> nn.Linear(h, lat_dim)
-
-<span class="tok-kw">class</span> <span class="tok-cls">Decoder</span>(nn.Module):
+        self.fc_mu  <span class="tok-op">=</span> nn.Linear(h, lat_dim)
+        self.fc_logvar <span class="tok-op">=</span> nn.Linear(h, lat_dim)
     <span class="tok-kw">def</span> <span class="fn-name">__init__</span>(self, lat_dim<span class="tok-op">=</span><span class="tok-num">2</span>, out_dim<span class="tok-op">=</span><span class="tok-num">3</span>, h<span class="tok-op">=</span><span class="tok-num">512</span>):
         <span class="tok-kw">super</span>().__init__()
-        self.net <span class="tok-op">=</span> nn.Sequential(
+        self.decoder <span class="tok-op">=</span> nn.Sequential(
             nn.Linear(lat_dim, h), nn.ELU(),   <span class="tok-cm"># ELU = C¹ smooth</span>
             nn.Linear(h, h),       nn.ELU(),
             nn.Linear(h, h),       nn.ELU(),
             nn.Linear(h, h),       nn.ELU(),
             nn.Linear(h, out_dim)
         )
-    <span class="tok-kw">def</span> <span class="fn-name">forward</span>(self, z): <span class="tok-kw">return</span> self.net(z)
+    <span class="tok-kw">def</span> <span class="fn-name">forward</span>(self, x): 
+        mu, logvar <span class="tok-op">=</span> self.encode(x)
+        z <span class="tok-op">=</span> self.reparameterize(mu, logvar)
+        recon_x <span class="tok-op">=</span> self.decoder(z)
+        <span class="tok-kw">return</span> recon_x, mu, logvar
 
 <span class="tok-cm"># Training configuration</span>
 <span class="tok-cm"># epochs=500, lr=1e-4, batch_size=128, β=0.1</span></code></pre>
@@ -142,20 +144,20 @@ print(<span class="tok-str">f"Training samples: {X.shape[0]}"</span>)  <span cla
       <pre><code><span class="tok-kw">from</span> latentxai <span class="tok-kw">import</span> lxai
 
 <span class="tok-cm"># Encode data to latent space</span>
-encoder.eval()
+model.eval()
 <span class="tok-kw">with</span> torch.no_grad():
-    mu, _ <span class="tok-op">=</span> encoder(torch.tensor(X, dtype<span class="tok-op">=</span>torch.float32))
-    Z <span class="tok-op">=</span> mu.numpy()  <span class="tok-cm"># (N, 2)</span>
+    recon_data, mu, _ <span class="tok-op">=</span> model(torch.tensor(X, dtype<span class="tok-op">=</span>torch.float32).to(<span class="tok-str">'cuda'</span>))
+    Z <span class="tok-op">=</span> mu.cpu().numpy()  <span class="tok-cm"># (N, 2)</span>
 
 <span class="tok-cm"># Fit Latent-XAI</span>
-model <span class="tok-op">=</span> lxai(
-    decoder<span class="tok-op">=</span>decoder,          <span class="tok-cm"># trained PyTorch decoder</span>
+SwissRoll_lxai <span class="tok-op">=</span> lxai(
+    decoder<span class="tok-op">=</span>model.decoder,      <span class="tok-cm"># trained PyTorch decoder</span>
+    principle_tangent_dims<span class="tok-op">=</span><span class="tok-num">2</span>,   <span class="tok-cm"># intrinsic dim of Swiss Roll</span>
     n_neighbors<span class="tok-op">=</span><span class="tok-num">20</span>,
-    sigma<span class="tok-op">=</span><span class="tok-num">0.3</span>,
-    principle_tangent_dims<span class="tok-op">=</span><span class="tok-num">2</span>,  <span class="tok-cm"># intrinsic dim of Swiss Roll</span>
-    n_components<span class="tok-op">=</span><span class="tok-num">7</span>
+    n_components<span class="tok-op">=</span><span class="tok-num">10</span>,
+    sigma<span class="tok-op">=</span><span class="tok-num">0.3</span>
 )
-model.fit(Z)</code></pre>
+SwissRoll_lxai.fit(Z)</code></pre>
     </div>
 
     <h2 id="results">Results</h2>
@@ -180,12 +182,14 @@ model.fit(Z)</code></pre>
       <pre><code><span class="tok-kw">import</span> matplotlib.pyplot <span class="tok-kw">as</span> plt
 
 <span class="tok-cm"># Plot the eigenvalue spectrum</span>
-plt.figure(figsize<span class="tok-op">=</span>(<span class="tok-num">6</span>, <span class="tok-num">3</span>))
-plt.bar(range(<span class="tok-num">1</span>, <span class="tok-num">8</span>), model.eigenvalues_[:<span class="tok-num">7</span>], color<span class="tok-op">=</span><span class="tok-str">'steelblue'</span>)
-plt.xlabel(<span class="tok-str">"Eigenvalue index"</span>); plt.ylabel(<span class="tok-str">"λ"</span>)
-plt.title(<span class="tok-str">"Connection Laplacian spectrum"</span>)
-plt.axvline(<span class="tok-num">2.5</span>, color<span class="tok-op">=</span><span class="tok-str">'red'</span>, linestyle<span class="tok-op">=</span><span class="tok-str">'--'</span>, label<span class="tok-op">=</span><span class="tok-str">'spectral gap'</span>)
-plt.legend(); plt.tight_layout(); plt.show()</code></pre>
+plt.figure(figsize<span class="tok-op">=</span>(<span class="tok-num">7</span>, <span class="tok-num">7</span>))
+plt.plot(range(<span class="tok-num">1</span>, <span class="tok-num">8</span>), SwissRoll_lxai.eigenvalues_[:<span class="tok-num">7</span>], <span class="tok-str">'-o'</span>)
+ax <span class="tok-op">=</span> plt.gca()
+ax.xaxis.set_major_locator(plt.MaxNLocator(integer<span class="tok-op">=</span><span class="tok-cls">True</span>))
+plt.xlabel(<span class="tok-str">'lowest ordering'</span>)
+plt.ylabel(<span class="tok-str">'Eigenvalues'</span>)
+plt.tight_layout()
+plt.show()</code></pre>
     </div>
     <p>
       Two near-zero eigenvalues followed by a clear spectral gap confirm that the manifold has
@@ -198,20 +202,17 @@ plt.legend(); plt.tight_layout(); plt.show()</code></pre>
       <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
       <pre><code><span class="tok-kw">from</span> latentxai.plotting <span class="tok-kw">import</span> plot_flow
 
-<span class="tok-cm"># Plot first eigenvector (length direction)</span>
-plot_flow(
-    z_points<span class="tok-op">=</span>Z,
-    V_latent<span class="tok-op">=</span>model.VF_on_Z_,      <span class="tok-cm"># first VF in latent space</span>
-    overlay_color<span class="tok-op">=</span>t,
-    skip<span class="tok-op">=</span><span class="tok-num">10</span>,
-    title<span class="tok-op">=</span><span class="tok-str">"Swiss Roll — EV1 (length)"</span>
+<span class="tok-cm"># Project fields back to latent space (handles numpy directly)</span>
+v1_latent <span class="tok-op">=</span> SwissRoll_lxai.project_fields_to_latent(
+    torch.tensor(Z).to(<span class="tok-str">'cuda'</span>), SwissRoll_lxai.PVF_on_X_[<span class="tok-num">0</span>]
+)
+v2_latent <span class="tok-op">=</span> SwissRoll_lxai.project_fields_to_latent(
+    torch.tensor(Z).to(<span class="tok-str">'cuda'</span>), SwissRoll_lxai.PVF_on_X_[<span class="tok-num">1</span>]
 )
 
-<span class="tok-cm"># Project second eigenvector to latent space manually</span>
-VF2_latent <span class="tok-op">=</span> model.project_fields_to_latent(
-    torch.tensor(Z, dtype<span class="tok-op">=</span>torch.float32), model.PVF_on_X_[<span class="tok-num">1</span>]
-)
-plot_flow(Z, VF2_latent, t, skip<span class="tok-op">=</span><span class="tok-num">10</span>, title<span class="tok-op">=</span><span class="tok-str">"Swiss Roll — EV2 (width)"</span>)</code></pre>
+<span class="tok-cm"># Visualise the fields in 2D latent space</span>
+<span class="tok-cm"># (assuming a custom visualise_latent_fields function like in the notebook)</span>
+visualize_latent_fields(Z, v1_latent, v2_latent, t_labels<span class="tok-op">=</span>t)</code></pre>
     </div>
 
     <h2 id="hyperparameter-sensitivity">Hyperparameter Sensitivity</h2>
