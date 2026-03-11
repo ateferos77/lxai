@@ -168,28 +168,58 @@
 
     <!-- ── QUICK START ── -->
     <h2 id="quick-start">Quick Start</h2>
-    <p>Fit Latent-XAI to a trained VAE in three lines:</p>
+    <p>Fit Latent-XAI to a trained VAE decoder. The decoder must be a <strong>callable PyTorch module</strong> and <code>Z</code> a NumPy array of shape <code>(N, L)</code>:</p>
     <div class="code-block-wrapper">
       <div class="code-block-header">
         <span class="code-lang-badge">python</span>
         <button class="copy-btn">⧉ Copy</button>
       </div>
-      <pre><code><span class="tok-kw">from</span> latentxai <span class="tok-kw">import</span> lxai
+      <pre><code><span class="tok-kw">import</span> latentxai
+<span class="tok-kw">import</span> torch
+<span class="tok-kw">import</span> numpy <span class="tok-kw">as</span> np
 
-<span class="tok-cm"># Z: latent codes (N, L), decoder: your trained VAE decoder (callable)</span>
-model <span class="tok-op">=</span> lxai(decoder<span class="tok-op">=</span>decoder, n_neighbors<span class="tok-op">=</span><span class="tok-num">20</span>, sigma<span class="tok-op">=</span><span class="tok-num">0.3</span>, principle_tangent_dims<span class="tok-op">=</span><span class="tok-num">2</span>)
-model.fit(Z)
+<span class="tok-cm"># Assume 'decoder' is your trained PyTorch VAE decoder module</span>
+<span class="tok-cm"># Assume 'Z' is a NumPy array of shape (N, L) containing latent codes</span>
 
-<span class="tok-cm"># Access results</span>
-eigenvalues  <span class="tok-op">=</span> model.eigenvalues_       <span class="tok-cm"># (n_components,)</span>
-vector_fields<span class="tok-op">=</span> model.PVF_on_X_         <span class="tok-cm"># (n_components, N, D) — ambient space</span>
-vf_latent    <span class="tok-op">=</span> model.VF_on_Z_          <span class="tok-cm"># (N, L) — first VF in latent space</span></code></pre>
+<span class="tok-cm"># Initialize Latent-XAI model</span>
+model <span class="tok-op">=</span> latentxai.lxai(
+    decoder<span class="tok-op">=</span>decoder,            <span class="tok-cm"># Your PyTorch callable decoder</span>
+    n_neighbors<span class="tok-op">=</span><span class="tok-num">20</span>,             <span class="tok-cm"># k for KNN graph construction</span>
+    n_components<span class="tok-op">=</span><span class="tok-num">10</span>,            <span class="tok-cm"># Number of eigenvectors to compute</span>
+    principle_tangent_dims<span class="tok-op">=</span><span class="tok-num">2</span>,   <span class="tok-cm"># Intrinsic dimensionality H ≪ L</span>
+    sigma<span class="tok-op">=</span><span class="tok-num">0.3</span>,                  <span class="tok-cm"># Gaussian kernel width (or 'auto')</span>
+)
+
+<span class="tok-cm"># Fit the model to your latent codes</span>
+model.fit(Z)  <span class="tok-cm"># Z: np.ndarray (N, L)</span>
+
+<span class="tok-cm"># ── Fitted attributes ──────────────────────────────────────────</span>
+eigenvalues   <span class="tok-op">=</span> model.eigenvalues_    <span class="tok-cm"># (n_components,)      — Connection Laplacian spectrum</span>
+vector_fields <span class="tok-op">=</span> model.PVF_on_X_        <span class="tok-cm"># (n_components, N, D) — parallel vector fields in ambient space</span>
+
+<span class="tok-cm"># ── Access individual vector fields by index ───────────────────</span>
+first_vf  <span class="tok-op">=</span> model.PVF_on_X_[<span class="tok-num">0</span>]  <span class="tok-cm"># (N, D) — smoothest global direction</span>
+second_vf <span class="tok-op">=</span> model.PVF_on_X_[<span class="tok-num">1</span>]  <span class="tok-cm"># (N, D) — next orthogonal direction</span>
+
+<span class="tok-cm"># ── Project a vector field back to latent space ─────────────────</span>
+<span class="tok-cm"># Ensure Z is on the correct device for the decoder</span>
+Z_tensor <span class="tok-op">=</span> torch.tensor(Z, dtype<span class="tok-op">=</span>torch.float32).to(<span class="tok-str">'cuda'</span>)
+v_latent <span class="tok-op">=</span> model.project_fields_to_latent(
+    Z_tensor, model.PVF_on_X_[<span class="tok-num">0</span>]
+)  <span class="tok-cm"># (N, L)</span></code></pre>
     </div>
 
     <div class="admonition tip">
-      <div class="admonition-title">💡 Tip — sklearn compatibility</div>
-      <p>Latent-XAI follows scikit-learn conventions: hyperparameters in <code>__init__()</code>,
-      fitted attributes end with <code>_</code>, and <code>fit()</code> returns <code>self</code>.</p>
+      <div class="admonition-title">💡 fit_transform() shortcut</div>
+      <p>Use <code>fit_transform(Z)</code> to fit and immediately return the first parallel vector field
+      in ambient space as an <code>(N, D)</code> array — equivalent to <code>model.fit(Z).PVF_on_X_[0]</code>.</p>
+    </div>
+
+    <div class="admonition tip">
+      <div class="admonition-title">⚙️ Requirements</div>
+      <p>Latent-XAI uses <strong>CuPy</strong> for the sparse eigendecomposition — a CUDA-capable GPU is required.
+      The decoder must be differentiable; ELU activations are recommended over ReLU for smooth tangent spaces
+      (see <a href="api/lxai.html">API docs</a>).</p>
     </div>
 
     <!-- ── FOUR EXPERIMENTS ── -->
