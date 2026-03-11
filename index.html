@@ -78,8 +78,9 @@
     <h2 id="abstract">Abstract</h2>
     <p>
       <strong>Variational Autoencoders (VAEs)</strong> learn a low-dimensional latent representation of high-dimensional
-      data via an encoder <em>φ: Ω<sub>X</sub> → Λ</em> and a decoder <em>ψ: Ω<sub>Z</sub> → Ω<sub>X</sub></em>,
-      optimising a β-weighted ELBO comprising a reconstruction loss and a KL-divergence regulariser. While VAEs have
+      data via an encoder <em>φ: Ω<sub>X</sub> → Λ</em> and a decoder <em>ψ: Ω<sub>Z</sub> → 𝒴 ⊂ Ω<sub>X</sub></em>,
+      trained by minimising a β-weighted loss ℓ(x, φ, ψ) = 𝔼[‖ψ(z) − x‖²] + β · KL[p(z|x) ‖ p(z)]
+      comprising a squared reconstruction term and a KL-divergence regulariser. While VAEs have
       driven discoveries in single-cell biology, molecular dynamics, and clinical data analysis, explanations of the
       learnt latent clusters with respect to input features remain poorly studied. Existing XAI approaches for VAEs
       operate on the encoder — measuring point-wise sensitivity of latent variables to ambient features — but this
@@ -100,8 +101,9 @@
       the <strong>discrete Connection Laplacian</strong> <em>B</em> (an <em>NH×NH</em> sparse block matrix), whose
       off-diagonal blocks <em>B<sub>ij</sub> = −2w<sub>ij</sub>Q<sub>ij</sub></em> encode the parallel transport
       map <em>Q<sub>ij</sub> = T<sub>i</sub><sup>⊤</sup>T<sub>j</sub></em> between neighbouring tangent spaces.
-      Minimising the Connection Laplacian's Rayleigh quotient over smooth vector fields reduces to a sparse
-      eigenvalue problem, whose smallest eigenvectors yield globally coherent
+      This yields a constrained quadratic minimisation over local tangent components
+      {<em>v<sub>i</sub></em>} — min Σ<sub>ij</sub> w<sub>ij</sub> ‖P<sub>i</sub>T<sub>j</sub>v<sub>j</sub> − T<sub>i</sub>v<sub>i</sub>‖² s.t. ‖(<em>v<sub>i</sub></em>)‖ = 1 —
+      which reduces to a sparse eigenvalue problem <em>B𝐕 = λ𝐕</em>, whose smallest eigenvectors yield globally coherent
       <strong>parallel vector fields</strong> — the smoothest, most fundamental directions of variation on the
       manifold — serving as intrinsic local coordinate charts in the ambient space ℝ<sup>D</sup>.
     </p>
