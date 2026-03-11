@@ -77,47 +77,47 @@
     <!-- ── ABSTRACT ── -->
     <h2 id="abstract">Abstract</h2>
     <p>
-      <strong>Variational Autoencoders (VAEs)</strong> learn a low-dimensional latent representation of high-dimensional
-      data via an encoder <em>φ: Ω<sub>X</sub> → Λ</em> and a decoder <em>ψ: Ω<sub>Z</sub> → 𝒴 ⊂ Ω<sub>X</sub></em>,
-      trained by minimising a β-weighted loss ℓ(x, φ, ψ) = 𝔼[‖ψ(z) − x‖²] + β · KL[p(z|x) ‖ p(z)]
-      comprising a squared reconstruction term and a KL-divergence regulariser. While VAEs have
-      driven discoveries in single-cell biology, molecular dynamics, and clinical data analysis, explanations of the
-      learnt latent clusters with respect to input features remain poorly studied. Existing XAI approaches for VAEs
-      operate on the encoder — measuring point-wise sensitivity of latent variables to ambient features — but this
-      is largely uninformative when the latent space does not correspond to the intrinsic coordinate directions of
-      the data manifold.
+      <strong>Variational Autoencoders (VAEs)</strong> have become central tools for analysing high-dimensional data
+      in single-cell biology, molecular dynamics, and clinical research. By compressing data through an encoder and
+      reconstructing it through a decoder, they learn a compact latent representation of the underlying data manifold.
+      Yet in practice, once training is complete, the decoder is almost universally discarded — treated as a mere
+      utility that served its purpose and is no longer needed.
     </p>
     <p>
-      We propose <strong>Latent-XAI</strong>, a post-hoc geometric framework built on the key observation that a
-      well-trained decoder <em>ψ</em> is a geometric repository: it encodes the full structure of the data manifold
-      in its weights, regardless of how distorted the encoding may be. Rather than relying on local PCA — which is
-      sensitive to sampling noise — Latent-XAI computes the <strong>Jacobian</strong>
-      <em>J<sub>i</sub> = ∇<sub>z</sub>ψ(z)|<sub>z=z<sub>i</sub></sub> ∈ ℝ<sup>D×L</sup></em> at each latent point
-      and extracts an orthonormal tangent basis <em>T<sub>i</sub> ∈ ℝ<sup>D×H</sup></em> via SVD, where
-      <em>H ≪ L</em> is the intrinsic dimensionality of the manifold.
+      This is a missed opportunity. A decoder that can faithfully reconstruct high-dimensional data from a
+      low-dimensional code must, by necessity, have encoded the geometric structure of that data within its weights.
+      The shape of the manifold — its curvature, its principal directions, its branching structure — is all there,
+      stored implicitly in the parameters of the network. <strong>Latent-XAI</strong> is built on this observation:
+      rather than discarding the decoder, we use it as a <em>geometric map</em> of the data manifold.
     </p>
     <p>
-      These decoder-derived tangent frames are aligned across a weighted <em>k</em>-nearest-neighbour graph using
-      the <strong>discrete Connection Laplacian</strong> <em>B</em> (an <em>NH×NH</em> sparse block matrix), whose
-      off-diagonal blocks <em>B<sub>ij</sub> = −2w<sub>ij</sub>Q<sub>ij</sub></em> encode the parallel transport
-      map <em>Q<sub>ij</sub> = T<sub>i</sub><sup>⊤</sup>T<sub>j</sub></em> between neighbouring tangent spaces.
-      This yields a constrained quadratic minimisation over local tangent components
-      {<em>v<sub>i</sub></em>} — min Σ<sub>ij</sub> w<sub>ij</sub> ‖P<sub>i</sub>T<sub>j</sub>v<sub>j</sub> − T<sub>i</sub>v<sub>i</sub>‖² s.t. ‖(<em>v<sub>i</sub></em>)‖ = 1 —
-      which reduces to a sparse eigenvalue problem <em>B𝐕 = λ𝐕</em>, whose smallest eigenvectors yield globally coherent
-      <strong>parallel vector fields</strong> — the smoothest, most fundamental directions of variation on the
-      manifold — serving as intrinsic local coordinate charts in the ambient space ℝ<sup>D</sup>.
+      At the heart of Latent-XAI is a fundamental shift in how we think about explainability for generative models.
+      Existing XAI approaches for VAEs focus on the encoder — asking which input features are most sensitive to
+      each latent variable. But if the latent space does not align with the true intrinsic directions of the data,
+      this sensitivity is uninformative. Instead of asking <em>"which single feature drives this latent code?"</em>,
+      Latent-XAI asks: <em>"what are the coherent, dominant directions of change that characterise the local
+      neighbourhood of this data point?"</em>
     </p>
     <p>
-      This framework advances <strong>Global XAI</strong>: instead of asking <em>"which features are most sensitive
-      at a single point?"</em>, Latent-XAI asks <em>"what are the dominant, linearly independent directions that
-      characterise the neighbourhood of this point on the data manifold?"</em> The method is validated across four
-      datasets of increasing complexity — the Swiss Roll (flat 2D manifold), Twin Peaks (high-curvature surface),
-      Alanine Dipeptide (66D molecular dynamics), and a pancreatic scRNA-seq dataset (3,000 genes, ~2,100 cells) —
-      demonstrating recovery of intrinsic coordinates, curvature, free-energy potential wells, and branching
-      differentiation lineages. Furthermore, because Latent-XAI requires only decoder evaluations and Jacobians on
-      a given query set — <em>not</em> the original training data — it serves as a forensic tool for independent
-      model verification under the <strong>EU AI Act</strong> (Articles 85–86), enabling unbiased post-hoc auditing
-      of high-risk medical AI systems.
+      To recover these directions, Latent-XAI computes the <strong>Jacobian of the decoder</strong> at each
+      latent point — the matrix that describes how a small perturbation in the latent code translates into change
+      in the ambient data space. These Jacobian-derived local tangent frames are then aligned across the data
+      manifold using a <strong>discrete Connection Laplacian</strong>, a spectral operator that propagates
+      directional information consistently across neighbouring points. Its eigenvectors are
+      <strong>parallel vector fields</strong>: globally coherent directions of change that collectively form
+      intrinsic coordinate charts of the manifold — directly in the ambient feature space, not in the latent space.
+    </p>
+    <p>
+      This approach works even when the encoder severely distorts the latent representation, because the geometry
+      is recovered from the <em>decoder</em>, not the encoder. We validate this across four datasets of increasing
+      complexity: the <strong>Swiss Roll</strong> and <strong>Twin Peaks</strong> synthetic manifolds (recovering
+      exact intrinsic coordinates and curvature-driven spiral fields), <strong>Alanine Dipeptide</strong>
+      (identifying free-energy potential wells in 66-dimensional molecular dynamics data invisible in the latent
+      space), and a <strong>pancreatic scRNA-seq</strong> dataset (delineating Alpha and Beta differentiation
+      lineages as perfectly orthogonal directions — using spliced counts alone, without RNA velocity). Because
+      Latent-XAI requires only a trained decoder and a query dataset, it can be applied post-hoc to any pretrained
+      differentiable model, offering an independent and quantitative tool for characterising and comparing
+      learnt VAE representations.
     </p>
 
     <!-- ── CONCEPT FIGURE ── -->
