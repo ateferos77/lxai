@@ -88,7 +88,7 @@
           <td><span class="param-name">decoder</span></td>
           <td><span class="param-type">callable | 'PCA'</span></td>
           <td><span class="param-default">'PCA'</span></td>
-          <td>The VAE decoder function. Must accept a <code>torch.Tensor</code> of shape <code>(N, L)</code> and return <code>(N, D)</code>. If <code>'PCA'</code>, uses local PCA for tangent estimation (no GPU decoder required).</td>
+          <td>The VAE decoder function. Must accept a <code>torch.Tensor</code> of shape <code>(N, L)</code>. The output will be automatically flattened to <code>(N, D)</code>. If <code>'PCA'</code>, uses local PCA for tangent estimation (no GPU decoder required).</td>
         </tr>
         <tr>
           <td><span class="param-name">n_neighbors</span></td>
@@ -167,8 +167,8 @@
         </tr>
         <tr>
           <td><span class="param-name">neighbor_indices_</span></td>
-          <td><span class="param-type">list of arrays</span></td>
-          <td>Neighbour indices for each point in the KNN graph.</td>
+          <td><span class="param-type">list of lists</span></td>
+          <td>Neighbour indices (as lists of ints) for each point in the KNN graph.</td>
         </tr>
       </tbody>
     </table>
@@ -247,7 +247,23 @@ print(model.PVF_on_X_.shape)    <span class="tok-cm"># (5, N, D)</span></code></
       Moore-Penrose pseudoinverse: <strong>v_latent = (J<sup>T</sup>J)<sup>-1</sup> J<sup>T</sup> v_ambient</strong>.
       Tikhonov regularisation (ε = 1e-6) is applied for numerical stability.
     </p>
+    <table class="param-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="param-name">z_points</span></td><td><span class="param-type">ndarray or torch.Tensor (N, L)</span></td><td>Latent codes. If an ndarray is provided, it is automatically moved to the device.</td></tr>
+        <tr><td><span class="param-name">V_ambient</span></td><td><span class="param-type">ndarray or torch.Tensor (N, D)</span></td><td>Vector field in ambient space to be projected.</td></tr>
+        <tr><td><span class="param-name">precomputed_jacobians</span></td><td><span class="param-type">ndarray or torch.Tensor (N, D, L), optional</span></td><td>Jacobian matrices. Defaults to <code>self.Jac_</code> if not provided.</td></tr>
+      </tbody>
+    </table>
     <p><strong>Returns:</strong> <code>ndarray (N, L)</code> — vector field in latent space.</p>
+
+    <!-- embed_function_fast -->
+    <h3 id="embed-function-fast">embed_function_fast</h3>
+    <div class="api-signature">
+      model.<span class="fn-name">embed_function_fast</span>(V_x, X)
+    </div>
+    <p>Legacy embedding function (kept for backward compatibility). Solves a sparse linear system using <code>lsqr</code>.</p>
+    <p><strong>Returns:</strong> <code>tuple</code> — result from <code>scipy.sparse.linalg.lsqr</code>.</p>
 
     <!-- save -->
     <h3 id="save">save</h3>
@@ -280,6 +296,7 @@ print(model.PVF_on_X_.shape)    <span class="tok-cm"># (5, N, D)</span></code></
         <tr><td><code>_compute_weights(data_graph)</code></td><td>Gaussian kernel weights: exp(−d²/2σ).</td></tr>
         <tr><td><code>_compute_adaptive_weights(data_graph)</code></td><td>Self-tuning Gaussian weights (Zelnik-Manor &amp; Perona 2004).</td></tr>
         <tr><td><code>compute_local_PCA(data, knn_graph, Z_dim_num)</code></td><td>Local PCA fallback for tangent estimation when no decoder is available.</td></tr>
+        <tr><td><code>_orient_vectorfield(PVF_on_X, reference_orientations)</code></td><td>Flips vector field signs to align with reference orientations using cosine similarity.</td></tr>
       </tbody>
     </table>
 
@@ -300,6 +317,7 @@ print(model.PVF_on_X_.shape)    <span class="tok-cm"># (5, N, D)</span></code></
     <li class="toc-h3"><a href="#fit-transform">fit_transform()</a></li>
     <li class="toc-h3"><a href="#compute-jacobian">compute_decoder_jacobian()</a></li>
     <li class="toc-h3"><a href="#project-fields">project_fields_to_latent()</a></li>
+    <li class="toc-h3"><a href="#embed-function-fast">embed_function_fast()</a></li>
     <li class="toc-h3"><a href="#save">save()</a></li>
     <li><a href="#internals">Internal Methods</a></li>
   </ul>
