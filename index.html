@@ -77,21 +77,45 @@
     <!-- ── ABSTRACT ── -->
     <h2 id="abstract">Abstract</h2>
     <p>
-      <strong>Variational Autoencoders (VAEs)</strong> are a powerful method for learning low-dimensional representations
-      of high-dimensional data. They have been applied extensively to medical data to find clusters of disease factors
-      and patients. However, explanations of these clusters with respect to their input features are poorly studied
-      due to the non-linear nature of the learnt manifold.
+      <strong>Variational Autoencoders (VAEs)</strong> learn a low-dimensional latent representation of high-dimensional
+      data via an encoder <em>φ: Ω<sub>X</sub> → Λ</em> and a decoder <em>ψ: Ω<sub>Z</sub> → Ω<sub>X</sub></em>,
+      optimising a β-weighted ELBO comprising a reconstruction loss and a KL-divergence regulariser. While VAEs have
+      driven discoveries in single-cell biology, molecular dynamics, and clinical data analysis, explanations of the
+      learnt latent clusters with respect to input features remain poorly studied. Existing XAI approaches for VAEs
+      operate on the encoder — measuring point-wise sensitivity of latent variables to ambient features — but this
+      is largely uninformative when the latent space does not correspond to the intrinsic coordinate directions of
+      the data manifold.
     </p>
     <p>
-      We propose <strong>Latent-XAI</strong>, a post-hoc geometric approach that uses the <em>Jacobian of the decoder</em>
-      to build a <em>Connection Laplacian</em> of the learnt manifold. Its eigenvectors form smooth vector fields over
-      the manifold, providing <strong>local coordinate systems</strong> for neighbourhoods in the ambient space.
+      We propose <strong>Latent-XAI</strong>, a post-hoc geometric framework built on the key observation that a
+      well-trained decoder <em>ψ</em> is a geometric repository: it encodes the full structure of the data manifold
+      in its weights, regardless of how distorted the encoding may be. Rather than relying on local PCA — which is
+      sensitive to sampling noise — Latent-XAI computes the <strong>Jacobian</strong>
+      <em>J<sub>i</sub> = ∇<sub>z</sub>ψ(z)|<sub>z=z<sub>i</sub></sub> ∈ ℝ<sup>D×L</sup></em> at each latent point
+      and extracts an orthonormal tangent basis <em>T<sub>i</sub> ∈ ℝ<sup>D×H</sup></em> via SVD, where
+      <em>H ≪ L</em> is the intrinsic dimensionality of the manifold.
     </p>
     <p>
-      We demonstrate that irrespective of latent distortions, the decoder contains the information to construct local
-      coordinates, facilitating the unfolding of the data manifold's local geometry. Furthermore, in the context of
-      the <strong>EU AI Act</strong>, Latent-XAI allows for unbiased post-hoc auditing, enabling stakeholders to verify
-      claims made regarding model training and fidelity.
+      These decoder-derived tangent frames are aligned across a weighted <em>k</em>-nearest-neighbour graph using
+      the <strong>discrete Connection Laplacian</strong> <em>B</em> (an <em>NH×NH</em> sparse block matrix), whose
+      off-diagonal blocks <em>B<sub>ij</sub> = −2w<sub>ij</sub>Q<sub>ij</sub></em> encode the parallel transport
+      map <em>Q<sub>ij</sub> = T<sub>i</sub><sup>⊤</sup>T<sub>j</sub></em> between neighbouring tangent spaces.
+      Minimising the Connection Laplacian's Rayleigh quotient over smooth vector fields reduces to a sparse
+      eigenvalue problem, whose smallest eigenvectors yield globally coherent
+      <strong>parallel vector fields</strong> — the smoothest, most fundamental directions of variation on the
+      manifold — serving as intrinsic local coordinate charts in the ambient space ℝ<sup>D</sup>.
+    </p>
+    <p>
+      This framework advances <strong>Global XAI</strong>: instead of asking <em>"which features are most sensitive
+      at a single point?"</em>, Latent-XAI asks <em>"what are the dominant, linearly independent directions that
+      characterise the neighbourhood of this point on the data manifold?"</em> The method is validated across four
+      datasets of increasing complexity — the Swiss Roll (flat 2D manifold), Twin Peaks (high-curvature surface),
+      Alanine Dipeptide (66D molecular dynamics), and a pancreatic scRNA-seq dataset (3,000 genes, ~2,100 cells) —
+      demonstrating recovery of intrinsic coordinates, curvature, free-energy potential wells, and branching
+      differentiation lineages. Furthermore, because Latent-XAI requires only decoder evaluations and Jacobians on
+      a given query set — <em>not</em> the original training data — it serves as a forensic tool for independent
+      model verification under the <strong>EU AI Act</strong> (Articles 85–86), enabling unbiased post-hoc auditing
+      of high-risk medical AI systems.
     </p>
 
     <!-- ── CONCEPT FIGURE ── -->
