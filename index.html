@@ -142,7 +142,7 @@
       <div class="card">
         <span class="card-icon">∂</span>
         <h3>Jacobian over Local PCA</h3>
-        <p>Rather than estimating tangent spaces from local PCA — which is sensitive to sampling density and noise — Latent-XAI computes the Jacobian <em>J = ∇ψ(z)</em> of the decoder at each latent point. Its top <em>H</em> singular vectors form data-driven, analytically exact tangent frames directly from the model weights.</p>
+        <p>Rather than estimating tangent spaces from local PCA — which is sensitive to sampling density and noise — Latent-XAI computes the Jacobian <em>J = ∇ψ(z)</em> of the decoder at each latent point. Its top <em>H</em> singular vectors (via SVD) form model-derived, noise-robust tangent frames that encode the local geometry directly from the decoder weights.</p>
       </div>
       <div class="card">
         <span class="card-icon">🌐</span>
@@ -152,7 +152,7 @@
       <div class="card">
         <span class="card-icon">📊</span>
         <h3>Spectral Manifold Diagnosis</h3>
-        <p>The eigenvalue spectrum of the Connection Laplacian diagnoses the manifold's intrinsic structure. Spectral gaps identify the number of smooth global coordinate charts; higher eigenvectors reveal curvature, torsion, and deformation — providing a quantitative tool for comparing and validating VAE representations.</p>
+        <p>The eigenvalue spectrum of the Connection Laplacian diagnoses the manifold's intrinsic structure. Spectral gaps reveal the number of smooth global coordinate charts — two for the Swiss Roll, four for Twin Peaks. Higher eigenvectors capture curvature and deformation: spiral fields around energy minima, saddle-point behaviour near potential wells, and bifurcation directions in branching lineages.</p>
       </div>
       <div class="card">
         <span class="card-icon">🛡️</span>
