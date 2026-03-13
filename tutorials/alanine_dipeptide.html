@@ -87,23 +87,63 @@
       <div class="code-block-wrapper">
         <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉
             Copy</button></div>
-        <pre><code><span class="tok-kw">import</span> numpy <span class="tok-kw">as</span> np
-<span class="tok-kw">from</span> sklearn.preprocessing <span class="tok-kw">import</span> RobustScaler
+        <pre><code>import numpy as np
+    import torch
+    from sklearn.preprocessing import RobustScaler
 
-<span class="tok-cm"># Load trajectory data (from Bittracher et al. 2018)</span>
-data <span class="tok-op">=</span> np.load(<span class="tok-str">"data/trajdata.npz"</span>)
-coords <span class="tok-op">=</span> data[<span class="tok-str">"coords"</span>]    <span class="tok-cm"># (T, 22, 3) → reshape to (T, 66)</span>
-phi    <span class="tok-op">=</span> data[<span class="tok-str">"phi"</span>]        <span class="tok-cm"># Ramachandran angle φ</span>
-psi    <span class="tok-op">=</span> data[<span class="tok-str">"psi"</span>]        <span class="tok-cm"># Ramachandran angle ψ</span>
+    # Compute backbone dihedral angle from atom coordinates (matches notebook math).
+    def dihedral(x: np.ndarray, i: int, j: int, k: int, l: int):
+      e_ji = x[:, i] - x[:, j]
+      e_jk = x[:, k] - x[:, j]
+      e_kl = x[:, l] - x[:, k]
+      u = np.cross(e_ji, e_jk)
+      v = np.cross(e_kl, e_jk)
+      w = np.cross(u, v)
+      angle = lambda a, b: np.arccos(np.clip(np.einsum('...i,...i', a, b) / (np.linalg.norm(a, axis=-1) * np.linalg.norm(b, axis=-1)), -1, 1))
+      alpha = angle(u, v)
+      beta = np.where(np.linalg.norm(w, axis=-1) > 1e-6, angle(e_jk, w), 0)
+      alpha[beta > 1e-3] *= -1
+      return alpha
 
-<span class="tok-cm"># Restrict to φ ∈ (0, 2) — circular topology</span>
-mask <span class="tok-op">=</span> (phi <span class="tok-op">&gt;</span> <span class="tok-num">0</span>) <span class="tok-op">&amp;</span> (phi <span class="tok-op">&lt;</span> <span class="tok-num">2</span>)
-X, phi_sub, psi_sub <span class="tok-op">=</span> coords[mask].reshape(<span class="tok-op">-</span><span class="tok-num">1</span>, <span class="tok-num">66</span>), phi[mask], psi[mask]
-print(<span class="tok-str">f"Samples after filtering: {X.shape[0]}"</span>)  <span class="tok-cm"># 11,215</span>
+    # Remove translation/rotation so VAE learns internal conformational changes.
+    def align_coordinates(coords):
+      N, _, _ = coords.shape
+      com = coords.mean(axis=1, keepdims=True)
+      coords_centered = coords - com
 
-<span class="tok-cm"># Normalise with RobustScaler (robust to MD outliers)</span>
-scaler <span class="tok-op">=</span> RobustScaler()
-X_scaled <span class="tok-op">=</span> scaler.fit_transform(X)</code></pre>
+      reference = coords_centered[0]
+      aligned_coords = np.zeros_like(coords_centered)
+      aligned_coords[0] = reference
+
+      for i in range(1, N):
+        current = coords_centered[i]
+        matrix_h = current.T @ reference
+        u, s, vt = np.linalg.svd(matrix_h)
+        rotation_matrix = vt.T @ u.T
+        if np.linalg.det(rotation_matrix) < 0:
+          vt[-1, :] *= -1
+          rotation_matrix = vt.T @ u.T
+        aligned_coords[i] = current @ rotation_matrix.T
+      return aligned_coords
+
+    # Load MD trajectory used in the notebook.
+    x = np.load('data/trj.npy').reshape(-1, 22, 3)
+    E = np.load('data/nrg.npy')
+
+    # Extract Ramachandran angles from atom indices used in the notebook.
+    phi = dihedral(x, 4, 6, 8, 14)
+    psi = dihedral(x, 6, 8, 14, 16)
+
+    # Restrict topology to circular subset: phi in (0, 2).
+    keep = (phi > 0) * (phi < 2)
+    phi, psi, x, E = phi[keep], psi[keep], x[keep], E[keep]
+
+    # Prepare VAE input: align -> flatten -> robust-scale -> torch tensor.
+    x_a = align_coordinates(x)
+    X_flat = x_a.reshape(x_a.shape[0], -1)  # (N, 22, 3) -> (N, 66)
+    scaler = RobustScaler()
+    X_scaled = scaler.fit_transform(X_flat)
+    X_tensor = torch.tensor(X_scaled, dtype=torch.float32)</code></pre>
       </div>
 
       <h2 id="vae-config">VAE Configuration</h2>
@@ -159,20 +199,117 @@ X_scaled <span class="tok-op">=</span> scaler.fit_transform(X)</code></pre>
         </tbody>
       </table>
 
+        <div class="code-block-wrapper">
+        <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉
+          Copy</button></div>
+        <pre><code>import torch
+    import torch.nn as nn
+    import torch.optim as optim
+    from torch.utils.data import TensorDataset, DataLoader
+
+    # Same architecture/hyperparameters as the notebook (66 -> 2 latent).
+    class VAE(nn.Module):
+      def __init__(self, input_dim=66, latent_dim=2, hidden_dim=512):
+        super(VAE, self).__init__()
+        self.encoder = nn.Sequential(
+          nn.Linear(input_dim, hidden_dim),
+          nn.LeakyReLU(),
+          nn.Linear(hidden_dim, hidden_dim),
+          nn.LeakyReLU(),
+          nn.Linear(hidden_dim, hidden_dim),
+          nn.LeakyReLU()
+        )
+        self.fc_mu = nn.Linear(hidden_dim, latent_dim)
+        self.fc_logvar = nn.Linear(hidden_dim, latent_dim)
+
+        self.decoder = nn.Sequential(
+          nn.Linear(latent_dim, hidden_dim),
+          nn.ELU(),
+          nn.Linear(hidden_dim, hidden_dim),
+          nn.ELU(),
+          nn.Linear(hidden_dim, hidden_dim),
+          nn.ELU(),
+          nn.Linear(hidden_dim, input_dim)
+        )
+
+      def encode(self, x):
+        h = self.encoder(x)
+        return self.fc_mu(h), self.fc_logvar(h)
+
+      def reparameterize(self, mu, logvar):
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return mu + eps * std
+
+      def decode(self, z):
+        return self.decoder(z)
+
+      def forward(self, x):
+        mu, logvar = self.encode(x)
+        z = self.reparameterize(mu, logvar)
+        recon_x = self.decode(z)
+        return recon_x, mu, logvar
+
+    # Notebook beta schedule: warmup -> ramp -> fixed beta=2.0.
+    def train_alanine_vae(X_tensor, device):
+      dataset = TensorDataset(X_tensor)
+      dataloader = DataLoader(dataset, batch_size=256, shuffle=True)
+      model = VAE(input_dim=66, latent_dim=2).to(device)
+      optimizer = optim.Adam(model.parameters(), lr=1e-4)
+
+      for epoch in range(500):
+        if epoch < 50:
+          beta = 0.0
+        elif epoch < 250:
+          beta = 2.0 * ((epoch - 50) / 200)
+        else:
+          beta = 2.0
+
+        for batch in dataloader:
+          x_batch = batch[0].to(device)
+          optimizer.zero_grad()
+          recon_x, mu, logvar = model(x_batch)
+          mse = nn.functional.mse_loss(recon_x, x_batch, reduction='sum')
+          kld = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp()) if beta != 0 else 0
+          loss = mse + (beta * kld)
+          loss.backward()
+          optimizer.step()
+      return model</code></pre>
+        </div>
+
       <h2 id="latentxai-config">Latent-XAI Configuration</h2>
       <div class="code-block-wrapper">
         <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉
             Copy</button></div>
-        <pre><code><span class="tok-kw">import</span> latentxai
+        <pre><code>import sys
+    import torch
+    from matplotlib.ticker import MaxNLocator
 
-AD_lxai <span class="tok-op">=</span> latentxai.lxai(
-    decoder<span class="tok-op">=</span>trained_model.decoder,
-    principle_tangent_dims<span class="tok-op">=</span><span class="tok-num">2</span>,  <span class="tok-cm"># circle has 1 intrinsic dim; use 2 for robustness</span>
-    n_components<span class="tok-op">=</span><span class="tok-num">20</span>,
-    n_neighbors<span class="tok-op">=</span><span class="tok-num">30</span>,            <span class="tok-cm"># larger neighbourhood for 66D data</span>
-    sigma<span class="tok-op">=</span><span class="tok-num">0.3</span>
-)
-AD_lxai.fit(Z)   <span class="tok-cm"># Z: encoded latent codes (N, 2)</span></code></pre>
+    sys.path.append("/scratch/htc/bzfsunka/latentxai/latentxai")
+    import latentxai, plotting
+
+    # Encode dataset into latent coordinates Z (matches notebook convention).
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    trained_model = train_alanine_vae(X_tensor, device)
+    trained_model.eval()
+    with torch.no_grad():
+      Z = trained_model.encode(X_tensor.to(device))[0].cpu().numpy()
+
+    # Fit Latent-XAI exactly with notebook settings.
+    AD_lxai = latentxai.lxai(decoder=trained_model.decoder,
+                 principle_tangent_dims=2,
+                 n_neighbors=30,
+                 n_components=20,
+                 sigma=0.3)
+    AD_lxai.fit(Z)
+
+    # Inspect first 10 eigenvalues (same plotting intent as notebook).
+    plt.figure(figsize=(7.5, 7))
+    plt.plot(range(1, 10 + 1), AD_lxai.eigenvalues_[:10], '-o')
+    ax = plt.gca()
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    plt.xlabel('lowest ordering')
+    plt.ylabel('Eigenvalues')</code></pre>
       </div>
 
       <h2 id="results">Results</h2>
