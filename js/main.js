@@ -155,7 +155,10 @@
       // Skip blocks that already have manual token markup.
       if (codeEl.querySelector('[class^="tok-"]')) return;
 
-      const text = codeEl.textContent || '';
+      let text = codeEl.textContent || '';
+      // Recover from accidental literal token tags rendered as text.
+      // Example broken input: <span class="tok-kw">import</span> sys
+      text = text.replace(/<\/?span\b[^>]*>/gi, '');
       if (!text.trim()) return;
 
       codeEl.innerHTML = highlightPython(text);
