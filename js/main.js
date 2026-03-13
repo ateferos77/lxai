@@ -114,7 +114,6 @@
   function initSyntaxHighlighting() {
     const keywordPattern = /\b(import|from|as|def|class|return|for|while|if|elif|else|with|in|is|not|and|or|lambda|pass|break|continue|try|except|finally|raise|yield|True|False|None)\b/g;
     const numberPattern = /\b\d+(?:\.\d+)?\b/g;
-    const opPattern = /(\*\*|==|!=|<=|>=|\+=|-=|\*=|\/=|%=|=|\+|-|\*|\/|%|<|>)/g;
 
     const escapeHtml = (text) => text
       .replace(/&/g, '&amp;')
@@ -144,7 +143,9 @@
       // Highlight remaining Python syntax.
       out = out.replace(keywordPattern, '<span class="tok-kw">$1</span>');
       out = out.replace(numberPattern, '<span class="tok-num">$&</span>');
-      out = out.replace(opPattern, '<span class="tok-op">$1</span>');
+      // NOTE: We intentionally skip operator-token replacement here.
+      // Applying operator regex after HTML span insertion can mutate tag attributes
+      // (e.g., class="tok-kw"), causing raw <span ...> text to appear on screen.
 
       // Restore protected tokens.
       out = out.replace(/@@TOK(\d+)@@/g, (_, idx) => stash[Number(idx)]);
