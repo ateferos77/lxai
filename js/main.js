@@ -110,6 +110,58 @@
     });
   }
 
+  /* ---- Lightweight Syntax Highlighting for Plain Python Blocks ---- */
+  function initSyntaxHighlighting() {
+    const keywordPattern = /\b(import|from|as|def|class|return|for|while|if|elif|else|with|in|is|not|and|or|lambda|pass|break|continue|try|except|finally|raise|yield|True|False|None)\b/g;
+    const numberPattern = /\b\d+(?:\.\d+)?\b/g;
+    const opPattern = /(\*\*|==|!=|<=|>=|\+=|-=|\*=|\/=|%=|=|\+|-|\*|\/|%|<|>)/g;
+
+    const escapeHtml = (text) => text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    const highlightPython = (source) => {
+      const escaped = escapeHtml(source);
+      const stash = [];
+
+      const take = (value) => {
+        const key = `@@TOK${stash.length}@@`;
+        stash.push(value);
+        return key;
+      };
+
+      // Protect strings first.
+      let out = escaped.replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g, (m) => {
+        return take(`<span class="tok-str">${m}</span>`);
+      });
+
+      // Protect comments after strings to avoid coloring # inside strings.
+      out = out.replace(/#[^\n]*/g, (m) => {
+        return take(`<span class="tok-cm">${m}</span>`);
+      });
+
+      // Highlight remaining Python syntax.
+      out = out.replace(keywordPattern, '<span class="tok-kw">$1</span>');
+      out = out.replace(numberPattern, '<span class="tok-num">$&</span>');
+      out = out.replace(opPattern, '<span class="tok-op">$1</span>');
+
+      // Restore protected tokens.
+      out = out.replace(/@@TOK(\d+)@@/g, (_, idx) => stash[Number(idx)]);
+      return out;
+    };
+
+    document.querySelectorAll('.code-block-wrapper pre code').forEach(codeEl => {
+      // Skip blocks that already have manual token markup.
+      if (codeEl.querySelector('[class^="tok-"]')) return;
+
+      const text = codeEl.textContent || '';
+      if (!text.trim()) return;
+
+      codeEl.innerHTML = highlightPython(text);
+    });
+  }
+
   /* ---- Mobile Sidebar Toggle ---- */
   function initSidebar() {
     const toggleBtn = document.getElementById('sidebar-toggle');
@@ -166,6 +218,7 @@
 
   /* ---- Init all ---- */
   document.addEventListener('DOMContentLoaded', () => {
+    initSyntaxHighlighting();
     initTOC();
     initCopyButtons();
     initSidebar();
@@ -174,6 +227,7 @@
 
   // Also run immediately in case DOM is already ready
   if (document.readyState !== 'loading') {
+    initSyntaxHighlighting();
     initTOC();
     initCopyButtons();
     initSidebar();
