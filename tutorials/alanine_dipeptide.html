@@ -1,89 +1,93 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Alanine Dipeptide Tutorial — Latent-XAI</title>
-  <meta name="description" content="Tutorial: applying Latent-XAI to Alanine Dipeptide molecular dynamics data to detect potential wells." />
+  <meta name="description"
+    content="Tutorial: applying Latent-XAI to Alanine Dipeptide molecular dynamics data to detect potential wells." />
   <link rel="stylesheet" href="../css/style.css" />
 </head>
+
 <body>
-<button class="sidebar-toggle" id="sidebar-toggle">☰</button>
-<div class="sidebar-overlay" id="sidebar-overlay"></div>
+  <button class="sidebar-toggle" id="sidebar-toggle">☰</button>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-<nav class="sidebar" role="navigation">
-  <a class="sidebar-logo" href="../index.html">
-    <div class="sidebar-logo-icon">🧬</div>
-    <div class="sidebar-logo-text">Latent-XAI<span>v1.0 · documentation</span></div>
-  </a>
-  <div class="sidebar-search"><input type="search" placeholder="Search docs…" /></div>
-  <div class="sidebar-nav">
-    <div class="sidebar-section-title">General</div>
-    <a href="../index.html">🏠 Overview</a>
-    <a href="../installation.html">📦 Installation</a>
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-section-title">API Reference</div>
-    <a href="../api/lxai.html">🔬 lxai (core class)</a>
-    <a href="../api/plotting.html">📊 plotting</a>
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-section-title">Tutorials</div>
-    <a href="swiss_roll.html">🌀 Swiss Roll</a>
-    <a href="twin_peaks.html">⛰️ Twin Peaks</a>
-    <a href="alanine_dipeptide.html" class="active">🧪 Alanine Dipeptide</a>
-    <a href="pancreas.html">🔬 Pancreatic scRNA-seq</a>
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-section-title">About</div>
-    <a href="https://github.com" target="_blank" rel="noopener">🔗 GitHub ↗</a>
-  </div>
-</nav>
+  <nav class="sidebar" role="navigation">
+    <a class="sidebar-logo" href="../index.html">
+      <div class="sidebar-logo-icon">🧬</div>
+      <div class="sidebar-logo-text">Latent-XAI<span>v1.0 · documentation</span></div>
+    </a>
+    <div class="sidebar-search"><input type="search" placeholder="Search docs…" /></div>
+    <div class="sidebar-nav">
+      <div class="sidebar-section-title">General</div>
+      <a href="../index.html">🏠 Overview</a>
+      <a href="../installation.html">📦 Installation</a>
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section-title">API Reference</div>
+      <a href="../api/lxai.html">🔬 lxai (core class)</a>
+      <a href="../api/plotting.html">📊 plotting</a>
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section-title">Tutorials</div>
+      <a href="swiss_roll.html">🌀 Swiss Roll</a>
+      <a href="twin_peaks.html">⛰️ Twin Peaks</a>
+      <a href="alanine_dipeptide.html" class="active">🧪 Alanine Dipeptide</a>
+      <a href="pancreas.html">🔬 Pancreatic scRNA-seq</a>
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section-title">About</div>
+      <a href="https://github.com" target="_blank" rel="noopener">🔗 GitHub ↗</a>
+    </div>
+  </nav>
 
-<div class="main-wrapper">
-  <div class="content-header">
-    <div class="header-links"><a href="https://github.com" target="_blank">GitHub</a></div>
-    <span class="version-badge">v1.0 stable</span>
-    <button class="theme-toggle" id="theme-toggle">🌙</button>
-  </div>
-
-  <div class="content">
-    <div class="breadcrumb">
-      <a href="../index.html">Latent-XAI</a><span class="breadcrumb-sep">›</span>
-      <span>Tutorials</span><span class="breadcrumb-sep">›</span>
-      <span>Alanine Dipeptide</span>
+  <div class="main-wrapper">
+    <div class="content-header">
+      <div class="header-links"><a href="https://github.com" target="_blank">GitHub</a></div>
+      <span class="version-badge">v1.0 stable</span>
+      <button class="theme-toggle" id="theme-toggle">🌙</button>
     </div>
 
-    <h1 id="alanine-dipeptide">🧪 Tutorial 3: Alanine Dipeptide</h1>
-    <p>
-      <span class="tag tag-blue">Molecular Dynamics</span>
-      <span class="tag tag-purple">Real-World Data</span>
-      <span class="tag">66D → 2D</span>
-      <span class="tag">11,215 samples</span>
-    </p>
-    <p style="margin-top:12px">
-      Alanine Dipeptide is a widely-used benchmark in molecular dynamics (MD). The protein consists
-      of 22 atoms (66-dimensional position data) governed by two principal dihedral angles φ and ψ.
-      This tutorial demonstrates that Latent-XAI can recover intrinsic geometry from
-      <strong>real-world, high-dimensional noisy data</strong>.
-    </p>
+    <div class="content">
+      <div class="breadcrumb">
+        <a href="../index.html">Latent-XAI</a><span class="breadcrumb-sep">›</span>
+        <span>Tutorials</span><span class="breadcrumb-sep">›</span>
+        <span>Alanine Dipeptide</span>
+      </div>
 
-    <h2 id="background">Scientific Background</h2>
-    <p>
-      The configuration space of Alanine Dipeptide is topologically a torus (parameterised by φ and ψ).
-      Because a simple Gaussian-prior VAE cannot represent a torus, we restrict analysis to states
-      where <strong>φ ∈ (0, 2) radians</strong>, reducing the topology to a circle.
-    </p>
-    <div class="admonition note">
-      <div class="admonition-title">ℹ️ Why restrict φ?</div>
+      <h1 id="alanine-dipeptide">🧪 Tutorial 3: Alanine Dipeptide</h1>
       <p>
-        The full dihedral angle space is a torus — topologically impossible to embed faithfully
-        with a standard Gaussian prior VAE. By restricting to φ ∈ (0, 2), the topology becomes
-        a circle, which the VAE can represent as a ring-shaped latent structure.
+        <span class="tag tag-blue">Molecular Dynamics</span>
+        <span class="tag tag-purple">Real-World Data</span>
+        <span class="tag">66D → 2D</span>
+        <span class="tag">11,215 samples</span>
       </p>
-    </div>
+      <p style="margin-top:12px">
+        Alanine Dipeptide is a widely-used benchmark in molecular dynamics (MD). The protein consists
+        of 22 atoms (66-dimensional position data) governed by two principal dihedral angles φ and ψ.
+        This tutorial demonstrates that Latent-XAI can recover intrinsic geometry from
+        <strong>real-world, high-dimensional noisy data</strong>.
+      </p>
 
-    <h2 id="preprocessing">Data Preprocessing</h2>
-    <div class="code-block-wrapper">
-      <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
-      <pre><code><span class="tok-kw">import</span> numpy <span class="tok-kw">as</span> np
+      <h2 id="background">Scientific Background</h2>
+      <p>
+        The configuration space of Alanine Dipeptide is topologically a torus (parameterised by φ and ψ).
+        Because a simple Gaussian-prior VAE cannot represent a torus, we restrict analysis to states
+        where <strong>φ ∈ (0, 2) radians</strong>, reducing the topology to a circle.
+      </p>
+      <div class="admonition note">
+        <div class="admonition-title">ℹ️ Why restrict φ?</div>
+        <p>
+          The full dihedral angle space is a torus — topologically impossible to embed faithfully
+          with a standard Gaussian prior VAE. By restricting to φ ∈ (0, 2), the topology becomes
+          a circle, which the VAE can represent as a ring-shaped latent structure.
+        </p>
+      </div>
+
+      <h2 id="preprocessing">Data Preprocessing</h2>
+      <div class="code-block-wrapper">
+        <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉
+            Copy</button></div>
+        <pre><code><span class="tok-kw">import</span> numpy <span class="tok-kw">as</span> np
 <span class="tok-kw">from</span> sklearn.preprocessing <span class="tok-kw">import</span> RobustScaler
 
 <span class="tok-cm"># Load trajectory data (from Bittracher et al. 2018)</span>
@@ -100,101 +104,144 @@ print(<span class="tok-str">f"Samples after filtering: {X.shape[0]}"</span>)  <s
 <span class="tok-cm"># Normalise with RobustScaler (robust to MD outliers)</span>
 scaler <span class="tok-op">=</span> RobustScaler()
 X_scaled <span class="tok-op">=</span> scaler.fit_transform(X)</code></pre>
-    </div>
+      </div>
 
-    <h2 id="vae-config">VAE Configuration</h2>
-    <table class="param-table">
-      <thead><tr><th>Parameter</th><th>Value</th><th>Note</th></tr></thead>
-      <tbody>
-        <tr><td>Input dim</td><td>66 (22 atoms × 3)</td><td>Flattened 3D positions</td></tr>
-        <tr><td>Encoder</td><td>3 layers, hidden=512, LeakyReLU</td><td></td></tr>
-        <tr><td>Decoder</td><td>3 layers, hidden=512, ELU</td><td>C¹ smooth</td></tr>
-        <tr><td>Latent dim</td><td>2</td><td>φ and ψ capture the DOF</td></tr>
-        <tr><td>Epochs</td><td>1,000</td><td>More epochs for high-D data</td></tr>
-        <tr><td>Learning rate</td><td>1e-4</td><td></td></tr>
-        <tr><td>Batch size</td><td>256</td><td></td></tr>
-        <tr><td>β (KL weight)</td><td>2.0</td><td>Stronger regularisation for noisy MD</td></tr>
-      </tbody>
-    </table>
+      <h2 id="vae-config">VAE Configuration</h2>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Value</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Input dim</td>
+            <td>66 (22 atoms × 3)</td>
+            <td>Flattened 3D positions</td>
+          </tr>
+          <tr>
+            <td>Encoder</td>
+            <td>3 layers, hidden=512, LeakyReLU</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>Decoder</td>
+            <td>3 layers, hidden=512, ELU</td>
+            <td>C¹ smooth</td>
+          </tr>
+          <tr>
+            <td>Latent dim</td>
+            <td>2</td>
+            <td>φ and ψ capture the DOF</td>
+          </tr>
+          <tr>
+            <td>Epochs</td>
+            <td>500</td>
+            <td>More epochs for high-D data</td>
+          </tr>
+          <tr>
+            <td>Learning rate</td>
+            <td>1e-4</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>Batch size</td>
+            <td>256</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>β (KL weight)</td>
+            <td>2.0 (with warmup)</td>
+            <td>Stronger regularisation for noisy MD</td>
+          </tr>
+        </tbody>
+      </table>
 
-    <h2 id="latentxai-config">Latent-XAI Configuration</h2>
-    <div class="code-block-wrapper">
-      <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
-      <pre><code><span class="tok-kw">from</span> latentxai <span class="tok-kw">import</span> lxai
+      <h2 id="latentxai-config">Latent-XAI Configuration</h2>
+      <div class="code-block-wrapper">
+        <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉
+            Copy</button></div>
+        <pre><code><span class="tok-kw">import</span> latentxai
 
-model <span class="tok-op">=</span> lxai(
-    decoder<span class="tok-op">=</span>decoder,
-    n_neighbors<span class="tok-op">=</span><span class="tok-num">30</span>,            <span class="tok-cm"># larger neighbourhood for 66D data</span>
-    sigma<span class="tok-op">=</span><span class="tok-num">0.3</span>,
+AD_lxai <span class="tok-op">=</span> latentxai.lxai(
+    decoder<span class="tok-op">=</span>trained_model.decoder,
     principle_tangent_dims<span class="tok-op">=</span><span class="tok-num">2</span>,  <span class="tok-cm"># circle has 1 intrinsic dim; use 2 for robustness</span>
-    n_components<span class="tok-op">=</span><span class="tok-num">10</span>
+    n_components<span class="tok-op">=</span><span class="tok-num">20</span>,
+    n_neighbors<span class="tok-op">=</span><span class="tok-num">30</span>,            <span class="tok-cm"># larger neighbourhood for 66D data</span>
+    sigma<span class="tok-op">=</span><span class="tok-num">0.3</span>
 )
-model.fit(Z)   <span class="tok-cm"># Z: encoded latent codes (N, 2)</span></code></pre>
-    </div>
+AD_lxai.fit(Z)   <span class="tok-cm"># Z: encoded latent codes (N, 2)</span></code></pre>
+      </div>
 
-    <h2 id="results">Results</h2>
-    <div class="figure-block">
-      <img src="../assets/figures/AD_results.png" alt="Alanine Dipeptide Latent-XAI results" />
-      <p class="figure-caption">
-        <strong>Fig. 4 — Alanine Dipeptide analysis.</strong>
-        (a) Ramachandran plot (φ, ψ) of original data.
-        (b) Free energy surface ΔG — white star marks the single potential well.
-        (c) 2D VAE latent space coloured by ψ — circular structure is recovered;
-        the white star shows the energy minimum does <em>not</em> coincide with the densest region.
-        (d) Connection Laplacian spectrum — spectral gap after 2 eigenvalues.
-        (e) First eigenvector: rotational flow along the ψ direction.
-        (f) Fifth eigenvector: spiral vector field localised near the energy minimum (white star).
-      </p>
-    </div>
+      <h2 id="results">Results</h2>
+      <div class="figure-block">
+        <img src="../assets/figures/AD_results.png" alt="Alanine Dipeptide Latent-XAI results" />
+        <p class="figure-caption">
+          <strong>Fig. 4 — Alanine Dipeptide analysis.</strong>
+          (a) Ramachandran plot (φ, ψ) of original data.
+          (b) Free energy surface ΔG — white star marks the single potential well.
+          (c) 2D VAE latent space coloured by ψ — circular structure is recovered;
+          the white star shows the energy minimum does <em>not</em> coincide with the densest region.
+          (d) Connection Laplacian spectrum — spectral gap after 2 eigenvalues.
+          (e) First eigenvector: rotational flow along the ψ direction.
+          (f) Fifth eigenvector: spiral vector field localised near the energy minimum (white star).
+        </p>
+      </div>
 
-    <h3 id="energy-well">Locating the Potential Well</h3>
-    <p>
-      The free energy well (white star in panels b, c, e, f) represents the most energetically
-      stable configuration of the peptide. Crucially:
-    </p>
-    <ul>
-      <li>In the latent space, the energy minimum does <em>not</em> correspond to the densest region — the encoder removes local geometry.</li>
-      <li>The first eigenvector captures the <strong>global rotation</strong> (ψ direction).</li>
-      <li>Subsequent eigenvectors (5th shown) produce <strong>saddle/spiral patterns near the well</strong>, capturing the deformation geometry of the energy minimum transition.</li>
-    </ul>
-
-    <div class="figure-block">
-      <img src="../assets/figures/suppB.png" alt="Supplementary Alanine Dipeptide vector fields (EV2, EV3, EV4)" />
-      <p class="figure-caption">
-        <strong>Fig. S2 — Alanine Dipeptide supplementary vector fields.</strong>
-        (a) 2nd eigenvector: perpendicular to the rotation, capturing width.
-        (b) 3rd eigenvector. (c) 4th eigenvector.
-        All panels mark the energy minimum with a white star.
-      </p>
-    </div>
-
-    <div class="admonition tip">
-      <div class="admonition-title">💡 Key insight</div>
+      <h3 id="energy-well">Locating the Potential Well</h3>
       <p>
-        The encoder discards local geometry (the energy minimum is not at the densest latent point),
-        but the <strong>decoder preserves it</strong>. Latent-XAI uses the decoder to re-expose this
-        information through the saddle/spiral patterns in the higher eigenvectors.
+        The free energy well (white star in panels b, c, e, f) represents the most energetically
+        stable configuration of the peptide. Crucially:
       </p>
-    </div>
+      <ul>
+        <li>In the latent space, the energy minimum does <em>not</em> correspond to the densest region — the encoder
+          removes local geometry.</li>
+        <li>The first eigenvector captures the <strong>global rotation</strong> (ψ direction).</li>
+        <li>Subsequent eigenvectors (5th shown) produce <strong>saddle/spiral patterns near the well</strong>, capturing
+          the deformation geometry of the energy minimum transition.</li>
+      </ul>
 
-    <div class="content-footer">
-      <span>← <a href="twin_peaks.html">Twin Peaks</a> &nbsp;|&nbsp; Next: <a href="pancreas.html">Pancreas scRNA-seq →</a></span>
+      <div class="figure-block">
+        <img src="../assets/figures/suppB.png" alt="Supplementary Alanine Dipeptide vector fields (EV2, EV3, EV4)" />
+        <p class="figure-caption">
+          <strong>Fig. S2 — Alanine Dipeptide supplementary vector fields.</strong>
+          (a) 2nd eigenvector: perpendicular to the rotation, capturing width.
+          (b) 3rd eigenvector. (c) 4th eigenvector.
+          All panels mark the energy minimum with a white star.
+        </p>
+      </div>
+
+      <div class="admonition tip">
+        <div class="admonition-title">💡 Key insight</div>
+        <p>
+          The encoder discards local geometry (the energy minimum is not at the densest latent point),
+          but the <strong>decoder preserves it</strong>. Latent-XAI uses the decoder to re-expose this
+          information through the saddle/spiral patterns in the higher eigenvectors.
+        </p>
+      </div>
+
+      <div class="content-footer">
+        <span>← <a href="twin_peaks.html">Twin Peaks</a> &nbsp;|&nbsp; Next: <a href="pancreas.html">Pancreas scRNA-seq
+            →</a></span>
+      </div>
     </div>
   </div>
-</div>
 
-<aside class="toc-sidebar">
-  <div class="toc-title">On this page</div>
-  <ul class="toc-list">
-    <li><a href="#background">Scientific Background</a></li>
-    <li><a href="#preprocessing">Data Preprocessing</a></li>
-    <li><a href="#vae-config">VAE Configuration</a></li>
-    <li><a href="#latentxai-config">Latent-XAI Configuration</a></li>
-    <li><a href="#results">Results</a></li>
-    <li class="toc-h3"><a href="#energy-well">Locating the Potential Well</a></li>
-  </ul>
-</aside>
+  <aside class="toc-sidebar">
+    <div class="toc-title">On this page</div>
+    <ul class="toc-list">
+      <li><a href="#background">Scientific Background</a></li>
+      <li><a href="#preprocessing">Data Preprocessing</a></li>
+      <li><a href="#vae-config">VAE Configuration</a></li>
+      <li><a href="#latentxai-config">Latent-XAI Configuration</a></li>
+      <li><a href="#results">Results</a></li>
+      <li class="toc-h3"><a href="#energy-well">Locating the Potential Well</a></li>
+    </ul>
+  </aside>
 
-<script src="../js/main.js"></script>
+  <script src="../js/main.js"></script>
 </body>
+
 </html>
