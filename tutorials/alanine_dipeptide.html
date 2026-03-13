@@ -180,13 +180,15 @@ AD_lxai.fit(Z)   <span class="tok-cm"># Z: encoded latent codes (N, 2)</span></c
         <img src="../assets/figures/AD_results.png" alt="Alanine Dipeptide Latent-XAI results" />
         <p class="figure-caption">
           <strong>Fig. 4 — Alanine Dipeptide analysis.</strong>
-          (a) Ramachandran plot (φ, ψ) of original data.
-          (b) Free energy surface ΔG — white star marks the single potential well.
-          (c) 2D VAE latent space coloured by ψ — circular structure is recovered;
-          the white star shows the energy minimum does <em>not</em> coincide with the densest region.
-          (d) Connection Laplacian spectrum — spectral gap after 2 eigenvalues.
-          (e) First eigenvector: rotational flow along the ψ direction.
-          (f) Fifth eigenvector: spiral vector field localised near the energy minimum (white star).
+          (a) Ramachandran plot of the dihedral angles φ and ψ in the dataset.
+          (b) Free energy surface (ΔG) showing a single potential well marked by a white star.
+          (c) 2D VAE latent representation of the dataset; the white star indicates the energy minimum, with the value
+          of ψ overlayed on the points.
+          (d) The spectrum of the Connection Laplacian spectrum, ten smallest eigenvalues.
+          (e) First eigenvector overlayed onto the latent representation, only every 20th point visualized. White star
+          highlighting the points close to the energy minima.
+          (f) Fifth eigenvector overlayed onto the latent representation, only every 20th point visualized. White star
+          highlighting the points close to the energy minima. (e-f) Only a subset of points were rendered.
         </p>
       </div>
 
@@ -196,11 +198,14 @@ AD_lxai.fit(Z)   <span class="tok-cm"># Z: encoded latent codes (N, 2)</span></c
         stable configuration of the peptide. Crucially:
       </p>
       <ul>
-        <li>In the latent space, the energy minimum does <em>not</em> correspond to the densest region — the encoder
-          removes local geometry.</li>
-        <li>The first eigenvector captures the <strong>global rotation</strong> (ψ direction).</li>
-        <li>Subsequent eigenvectors (5th shown) produce <strong>saddle/spiral patterns near the well</strong>, capturing
-          the deformation geometry of the energy minimum transition.</li>
+        <li>In the latent space, the potential well (white star) did <em>not</em> correspond to the densest part of the
+          points — demonstrating that the encoder removes local geometry.</li>
+        <li>Visualizing the first eigenvector, we observed that the vector field captures the <strong>rotation in the
+            direction of ψ</strong>.</li>
+        <li>Subsequent eigenvectors produced vector fields with <strong>saddle-point-like behavior</strong> in close
+          proximity to the free energy minima.</li>
+        <li>The fifth eigenvector represented a <strong>spiral vector field</strong> near the free energy minima,
+          possibly capturing the deformations involved in the transition into the well.</li>
       </ul>
 
       <div class="figure-block">
