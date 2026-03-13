@@ -151,14 +151,38 @@
       return out;
     };
 
+    const decodeEntities = (text) => {
+      const ta = document.createElement('textarea');
+      ta.innerHTML = text;
+      return ta.value;
+    };
+
+    const normalizeBrokenTokenMarkup = (rawText) => {
+      let text = rawText;
+
+      // Some blocks can be entity-encoded (or double-encoded) by previous edits.
+      // Decode a couple of times to recover literal markup safely.
+      for (let i = 0; i < 2; i += 1) {
+        if (text.includes('&lt;') || text.includes('&amp;lt;')) {
+          text = decodeEntities(text);
+        }
+      }
+
+      // Remove any leftover literal token tags before highlighting.
+      text = text
+        .replace(/<\/?span\b[^>]*>/gi, '')
+        .replace(/&lt;\/?span\b[^&]*&gt;/gi, '')
+        .replace(/&amp;lt;\/?span\b[^&]*&amp;gt;/gi, '');
+
+      return text;
+    };
+
     document.querySelectorAll('.code-block-wrapper pre code').forEach(codeEl => {
       // Skip blocks that already have manual token markup.
       if (codeEl.querySelector('[class^="tok-"]')) return;
 
       let text = codeEl.textContent || '';
-      // Recover from accidental literal token tags rendered as text.
-      // Example broken input: <span class="tok-kw">import</span> sys
-      text = text.replace(/<\/?span\b[^>]*>/gi, '');
+      text = normalizeBrokenTokenMarkup(text);
       if (!text.trim()) return;
 
       codeEl.innerHTML = highlightPython(text);
