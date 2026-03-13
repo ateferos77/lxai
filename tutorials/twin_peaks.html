@@ -70,7 +70,8 @@
     </div>
     <div class="code-block-wrapper">
       <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
-      <pre><code>import torch
+      <pre><code># Core numerical and deep-learning stack used throughout the tutorial.
+    import torch
   import torch.nn as nn
   import torch.optim as optim
   import torch.nn.functional as F
@@ -81,9 +82,11 @@
   import os
   import random
 
+  # Plot defaults chosen to make vector fields and manifolds readable in figures.
   plt.rcParams.update({'font.size': 20})
   plt.rcParams.update({'lines.linewidth': 5})
 
+  # Use GPU when available; this mainly speeds up VAE training.
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   print(f"Using device: {device}")
 
@@ -91,6 +94,7 @@
   warnings.filterwarnings("ignore", category=UserWarning)
   warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+  # Silence notebook-style warnings in the tutorial output.
   warnings.warn = lambda *args,**kwargs: None
 
   def set_all_seeds(seed):
@@ -117,6 +121,7 @@
     
     print(f"Random seed set to {seed} across all relevant frameworks.")
 
+  # Build a synthetic manifold with two Gaussian peaks in z over a square (x, y) domain.
   def generate_twin_peaks_data(n_samples=4000):
     # Standard domain: Square [-1, 1] x [-1, 1]
     x = (torch.rand(n_samples) * 2) - 1
@@ -138,7 +143,7 @@
     # Stack into (N, 3) matrix
     data = torch.stack([x, y, z], dim=1)
     
-    # Add slight manifold noise (thickness)
+    # Add slight manifold thickness so the task is realistic (not a perfectly clean surface).
     data += torch.randn_like(data) * 0.01
     
     return data</code></pre>
@@ -151,7 +156,8 @@
     </p>
     <div class="code-block-wrapper">
       <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
-      <pre><code>class VAE_TwinPeaks(nn.Module):
+      <pre><code># VAE learns a 2D latent code while reconstructing 3D manifold coordinates.
+    class VAE_TwinPeaks(nn.Module):
     def __init__(self, latent_dim=2):
       super().__init__()
         
@@ -162,6 +168,7 @@
         nn.Linear(128, 64),
         nn.ELU()
       )
+      # Mean and log-variance parameterize q(z|x) for stochastic latent sampling.
       self.fc_mu = nn.Linear(64, latent_dim)
       self.fc_logvar = nn.Linear(64, latent_dim)
 
@@ -179,6 +186,7 @@
       return self.fc_mu(h), self.fc_logvar(h)
 
     def reparameterize(self, mu, logvar):
+      # Reparameterization trick keeps gradients flowing through sampled z.
       std = torch.exp(0.5 * logvar)
       eps = torch.randn_like(std)
       return mu + eps * std
@@ -192,17 +200,18 @@
       recon_x = self.decode(z)
       return recon_x, mu, logvar
 
-  # Training Loop
+  # Training loop returns both trained model and sampled manifold points.
   def train_twin_peaks():
     set_all_seeds(0)
     data = generate_twin_peaks_data(n_samples=5000)
+    # DataLoader shuffles points so each mini-batch sees mixed manifold regions.
     dataset = torch.utils.data.TensorDataset(data)
     loader = torch.utils.data.DataLoader(dataset, batch_size=128, shuffle=True)
     
     model = VAE_TwinPeaks().to(device)
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
     
-    # Low beta to capture the sharp peaks
+    # Small beta prioritizes reconstruction fidelity so high-curvature peaks are preserved.
     beta = 0.01
     
     print("Training on Twin Peaks Manifold...")
@@ -212,6 +221,7 @@
         optimizer.zero_grad()
         recon_x, mu, logvar = model(x_batch)
             
+        # Standard beta-VAE objective: reconstruction + beta * KL regularization.
         recon_loss = F.mse_loss(recon_x, x_batch, reduction='sum')
         kld_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
             
@@ -226,6 +236,7 @@
   fig = plt.figure(figsize=(7, 7))
   ax = fig.add_subplot(111, projection='3d')
 
+  # Visual check: confirms geometry really looks like two peaks in 3D.
   # Original Data (Grey Mist)
   d_cpu = data.cpu().numpy()
   ax.scatter(d_cpu[:,0], d_cpu[:,1], d_cpu[:,2], c=d_cpu[:,2], cmap='hsv',s=4, alpha=0.6) #label='Twin Peaks Data')
@@ -243,6 +254,7 @@
   device = next(model.parameters()).device
   data_gpu = data.to(device)
 
+  # Use encoder means (mu) as deterministic latent coordinates for downstream geometry.
   # Encode all data to get the latent representations (z_mu)
   with torch.no_grad():
     mu, _ = model.encode(data_gpu)
@@ -256,6 +268,7 @@
   # --- PLOT ---
   fig, ax = plt.subplots(1, 1, figsize=(9, 7))
 
+  # Color by original x-coordinate to test whether left/right structure is separated in latent space.
   # Subplot 1: Color by X-Position (Left Peak vs Right Peak)
   # This shows if the VAE successfully separated the two wells
   sc1 = ax.scatter(mu[:, 0], mu[:, 1], c=x_vals, cmap='coolwarm', s=5, alpha=0.6)
@@ -268,28 +281,34 @@
   plt.savefig('plots/latent_rep_two_peaks.png', transparent=True)
   plt.show()
 
+  # Latent coordinates consumed by Latent-XAI.
   Z = mu</code></pre>
     </div>
 
     <h2 id="fitting">Fitting Latent-XAI</h2>
     <div class="code-block-wrapper">
       <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
-      <pre><code>import sys
+      <pre><code># Import local Latent-XAI package from repository path used in the notebook setup.
+import sys
   sys.path.append("/scratch/htc/bzfsunka/latentxai/latentxai")
   import latentxai, plotting
 
+  # Fit Connection-Laplacian-based parallel vector fields using the trained decoder Jacobian.
   # Compute Latent XAI
   TwinPeaks_lxai = latentxai.lxai(decoder=model.decoder, 
                     principle_tangent_dims=2,
                     n_neighbors=20,
+                    # Compute several modes so we can inspect both global and localized fields.
                     n_components = 10, # needs change to num eigencectors
                     sigma=0.03)
 
+  # Builds neighborhood graph, estimates tangent transport, and solves for smooth fields.
   # Fit vector field to the points Z
   TwinPeaks_lxai.fit(Z)
 
   plt.figure(figsize=(7,7))
   plt.title("Smallest Eigenvalues of \n the Connection Laplacian")
+  # Spectrum shape indicates manifold behavior; Twin Peaks usually shows gradual growth.
   plt.plot(range(1,8),TwinPeaks_lxai.eigenvalues_[:7],'-o')
   ax = plt.gca()
   ax.xaxis.set_major_locator(MaxNLocator(integer=True))
@@ -298,9 +317,11 @@
   plt.tight_layout()
   plt.savefig('plots/two_peaks_spectrum.png', transparent=True)
 
+  # First mode often captures broad/global flow directions across the manifold.
   V_latent_0 = TwinPeaks_lxai.project_fields_to_latent(Z, TwinPeaks_lxai.PVF_on_X_[0])
   plotting.plot_flow(Z, V_latent_0, data[:, 2], overlay_color_label=r'data z-axis')
 
+  # Higher mode can expose localized rotational/curvature-aware behavior near peaks.
   V_latent_3 = TwinPeaks_lxai.project_fields_to_latent(Z, TwinPeaks_lxai.PVF_on_X_[3])
   plotting.plot_flow(Z, V_latent_3, data[:, 2], overlay_color_label=r'data z-axis')</code></pre>
     </div>
