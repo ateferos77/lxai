@@ -67,97 +67,199 @@
     <h2 id="dataset">Dataset</h2>
     <p>
       We generate one turn of the Swiss Roll using scikit-learn, keeping points where the
-      time label <em>t</em> &gt; 7 (approximately 1,900 samples). White noise with σ = 0.04 is added.
+      time label <em>t</em> &gt; 7. White noise with σ = 0.04 is added and the data is normalized.
     </p>
     <div class="code-block-wrapper">
       <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
-      <pre><code><span class="tok-kw">import</span> numpy <span class="tok-kw">as</span> np
-<span class="tok-kw">from</span> sklearn.datasets <span class="tok-kw">import</span> make_swiss_roll
+      <pre><code>SEED_VALUE = 0
+set_all_seeds(SEED_VALUE)
 
-np.random.seed(<span class="tok-num">0</span>)
-X_full, t_full <span class="tok-op">=</span> make_swiss_roll(n_samples<span class="tok-op">=</span><span class="tok-num">3000</span>, noise<span class="tok-op">=</span><span class="tok-num">0.04</span>, random_state<span class="tok-op">=</span><span class="tok-num">0</span>)
+# --- Configuration & Data Generation ---
+BATCH_SIZE = 128
+LEARNING_RATE = 1e-4
+EPOCHS = 500
+LATENT_DIM = 2
+INPUT_DIM = 3
+HIDDEN_DIM = 512
 
-<span class="tok-cm"># Subset: one turn (t > 7)</span>
-mask <span class="tok-op">=</span> t_full <span class="tok-op">&gt;</span> <span class="tok-num">7</span>
-X, t <span class="tok-op">=</span> X_full[mask], t_full[mask]
-print(<span class="tok-str">f"Training samples: {X.shape[0]}"</span>)  <span class="tok-cm"># ~1900 points</span></code></pre>
+#--- Check for CUDA ---
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
+
+# --- Generate Swiss Roll
+np.random.seed(0)
+X_full, t_full = make_swiss_roll(n_samples=3000, noise=0.04, random_state=0)
+
+# Subset: one turn (t > 7)
+mask = t_full > 7
+X, t = X_full[mask], t_full[mask]
+print(f"Training samples: {X.shape[0]}")  # ~1900 points
+color = t
+
+# Normalize data
+X = (X - X.mean(axis=0)) / X.std(axis=0)
+
+# Convert to Tensor and move to device
+data_tensor = torch.FloatTensor(X).to(device)
+dataset = TensorDataset(data_tensor)
+dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)</code></pre>
     </div>
 
     <h2 id="vae-training">VAE Architecture &amp; Training</h2>
     <p>
-      We train a Vanilla VAE with 4-layer encoder and decoder (hidden dim = 512).
-      <strong>LeakyReLU</strong> is used for the encoder; <strong>ELU</strong> is used for the decoder
-      (required for C¹ smoothness of the Jacobian).
+      We train a VAE with a multi-layer encoder and decoder (hidden dim = 512).
+      <strong>LeakyReLU</strong> is used as the activation function throughout the network. 
+      The loss function uses a Beta-VAE approach with a discounted KL term (<code>0.1 * KLD</code>).
     </p>
     <div class="code-block-wrapper">
       <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
-      <pre><code><span class="tok-kw">import</span> torch
-<span class="tok-kw">import</span> torch.nn <span class="tok-kw">as</span> nn
-
-<span class="tok-kw">class</span> <span class="tok-cls">VAE</span>(nn.Module):
-    <span class="tok-kw">def</span> <span class="fn-name">__init__</span>(self, in_dim<span class="tok-op">=</span><span class="tok-num">3</span>, lat_dim<span class="tok-op">=</span><span class="tok-num">2</span>, h<span class="tok-op">=</span><span class="tok-num">512</span>):
-        <span class="tok-kw">super</span>().__init__()
-        self.encoder <span class="tok-op">=</span> nn.Sequential(
-            nn.Linear(in_dim, h), nn.LeakyReLU(),
-            nn.Linear(h, h),      nn.LeakyReLU(),
-            nn.Linear(h, h),      nn.LeakyReLU(),
-            nn.Linear(h, h),      nn.LeakyReLU(),
+      <pre><code># --- 2. Define the VAE Architecture ---
+class VAE(nn.Module):
+    def __init__(self, input_dim, latent_dim, hidden_dim):
+        super(VAE, self).__init__()
+        
+        # Encoder
+        self.encoder = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_dim, 64),
+            nn.LeakyReLU()
         )
-        self.fc_mu  <span class="tok-op">=</span> nn.Linear(h, lat_dim)
-        self.fc_logvar <span class="tok-op">=</span> nn.Linear(h, lat_dim)
-    <span class="tok-kw">def</span> <span class="fn-name">__init__</span>(self, lat_dim<span class="tok-op">=</span><span class="tok-num">2</span>, out_dim<span class="tok-op">=</span><span class="tok-num">3</span>, h<span class="tok-op">=</span><span class="tok-num">512</span>):
-        <span class="tok-kw">super</span>().__init__()
-        self.decoder <span class="tok-op">=</span> nn.Sequential(
-            nn.Linear(lat_dim, h), nn.ELU(),   <span class="tok-cm"># ELU = C¹ smooth</span>
-            nn.Linear(h, h),       nn.ELU(),
-            nn.Linear(h, h),       nn.ELU(),
-            nn.Linear(h, h),       nn.ELU(),
-            nn.Linear(h, out_dim)
+        
+        # Latent space distribution parameters
+        self.fc_mu = nn.Linear(64, latent_dim)
+        self.fc_logvar = nn.Linear(64, latent_dim)
+        
+        # Decoder
+        self.decoder = nn.Sequential(
+            nn.Linear(latent_dim, hidden_dim),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_dim, input_dim) 
         )
-    <span class="tok-kw">def</span> <span class="fn-name">forward</span>(self, x): 
-        mu, logvar <span class="tok-op">=</span> self.encode(x)
-        z <span class="tok-op">=</span> self.reparameterize(mu, logvar)
-        recon_x <span class="tok-op">=</span> self.decoder(z)
-        <span class="tok-kw">return</span> recon_x, mu, logvar
 
-<span class="tok-cm"># Training configuration</span>
-<span class="tok-cm"># epochs=500, lr=1e-4, batch_size=128, β=0.1</span></code></pre>
+    def reparameterize(self, mu, logvar):
+        # Reparameterization trick: z = mu + std * epsilon
+        if self.training:
+            std = torch.exp(0.5 * logvar)
+            eps = torch.randn_like(std)
+            return mu + eps * std
+        return mu
+
+    def forward(self, x):
+        h = self.encoder(x)
+        mu = self.fc_mu(h)
+        logvar = self.fc_logvar(h)
+        z = self.reparameterize(mu, logvar)
+        reconstruction = self.decoder(z)
+        return reconstruction, mu, logvar
+
+# --- Loss Function ---
+def loss_function(recon_x, x, mu, logvar):
+    # 1. Reconstruction Loss (Mean Squared Error for continuous data)
+    MSE = nn.functional.mse_loss(recon_x, x, reduction='sum')
+
+    # 2. KL Divergence: 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
+    # We weight KL slightly less here to prioritize structure preservation (Beta-VAE concept)
+    KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+
+    return MSE + 0.1*KLD
+
+# --- 4. Training Loop ---
+model = VAE(INPUT_DIM, LATENT_DIM, HIDDEN_DIM).to(device)
+optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE)
+
+print("Starting training...")
+model.train()
+for epoch in range(EPOCHS):
+    train_loss = 0
+    for batch in dataloader:
+        x_batch = batch[0] # Data is already on device
+        
+        optimizer.zero_grad()
+        recon_batch, mu, logvar = model(x_batch)
+        
+        loss = loss_function(recon_batch, x_batch, mu, logvar)
+        loss.backward()
+        train_loss += loss.item()
+        optimizer.step()
+    
+    if (epoch + 1) % 50 == 0:
+        print(f'Epoch: {epoch+1} | Loss: {train_loss / len(dataloader.dataset):.4f}')</code></pre>
     </div>
 
-    <div class="admonition tip">
-      <div class="admonition-title">💡 Why ELU for the decoder?</div>
-      <p>
-        ELU provides <strong>C¹ continuity</strong> (smooth first derivative), which is required for the
-        Jacobian of the decoder to define a smooth tangent space. ReLU and LeakyReLU have
-        discontinuous derivatives at 0, causing kinks in the manifold image that disrupt
-        the Connection Laplacian.
-      </p>
+    <h2 id="vae-visualization">VAE Visualization</h2>
+    <p>
+      We can visualize the original data, the latent embedding, and the reconstructed data from the VAE to verify that the model has trained correctly.
+    </p>
+    <div class="code-block-wrapper">
+      <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
+      <pre><code># ---  Visualization ---
+model.eval()
+with torch.no_grad():
+    # Get reconstruction and latent embedding for the whole dataset
+    recon_data, mu, _ = model(data_tensor)
+    
+    # Move back to CPU for plotting
+    z_embedded = mu.cpu().numpy()
+    recon_data = recon_data.cpu().numpy()
+    X_original = data_tensor.cpu().numpy()
+
+# Plotting
+fig = plt.figure(figsize=(18, 7))
+
+# Plot 1: Original Swiss Roll
+ax1 = fig.add_subplot(131, projection='3d')
+ax1.scatter(X_original[:, 0], X_original[:, 1], X_original[:, 2], c=color, cmap=plt.cm.Spectral)
+#ax1.set_title("Original Swiss Roll (3D)")
+ax1.view_init(7, -80)
+
+# Plot 2: Latent Embedding (The "Unrolled" Version)
+ax2 = fig.add_subplot(132)
+ax2.scatter(z_embedded[:, 0], z_embedded[:, 1], c=color, cmap=plt.cm.Spectral)
+#ax2.set_title("Learned Latent Embedding (2D)")
+ax2.grid(True)
+
+# Plot 3: Reconstructed Swiss Roll
+ax3 = fig.add_subplot(133, projection='3d')
+ax3.scatter(recon_data[:, 0], recon_data[:, 1], recon_data[:, 2], c=color, cmap=plt.cm.Spectral)
+#ax3.set_title("VAE Reconstruction (3D)")
+ax3.view_init(7, -80)
+
+plt.tight_layout()
+plt.savefig('plots/Swiss_Roll_Recon.png', transparent=True)
+plt.show()</code></pre>
     </div>
 
     <h2 id="fitting-latentxai">Fitting Latent-XAI</h2>
     <p>
-      After training the VAE, encode the data to obtain latent codes <code>Z</code>, then fit the model.
+      Now we can use the latent codes (<code>z_embedded</code>) to fit the Latent-XAI model.
       For the Swiss Roll, <code>principle_tangent_dims=2</code> since the manifold is intrinsically 2D.
     </p>
     <div class="code-block-wrapper">
       <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
-      <pre><code><span class="tok-kw">from</span> latentxai <span class="tok-kw">import</span> lxai
+      <pre><code>import sys
+  sys.path.append("/scratch/htc/bzfsunka/latentxai/latentxai")
+  import latentxai
 
-<span class="tok-cm"># Encode data to latent space</span>
-model.eval()
-<span class="tok-kw">with</span> torch.no_grad():
-    recon_data, mu, _ <span class="tok-op">=</span> model(torch.tensor(X, dtype<span class="tok-op">=</span>torch.float32).to(<span class="tok-str">'cuda'</span>))
-    Z <span class="tok-op">=</span> mu.cpu().numpy()  <span class="tok-cm"># (N, 2)</span>
+  Z = z_embedded
 
-<span class="tok-cm"># Fit Latent-XAI</span>
-SwissRoll_lxai <span class="tok-op">=</span> lxai(
-    decoder<span class="tok-op">=</span>model.decoder,      <span class="tok-cm"># trained PyTorch decoder</span>
-    principle_tangent_dims<span class="tok-op">=</span><span class="tok-num">2</span>,   <span class="tok-cm"># intrinsic dim of Swiss Roll</span>
-    n_neighbors<span class="tok-op">=</span><span class="tok-num">20</span>,
-    n_components<span class="tok-op">=</span><span class="tok-num">10</span>,
-    sigma<span class="tok-op">=</span><span class="tok-num">0.3</span>
-)
-SwissRoll_lxai.fit(Z)</code></pre>
+  # Compute Latent XAI
+  SwissRoll_lxai = latentxai.lxai(decoder=model.decoder, 
+                    principle_tangent_dims=2,
+                    n_neighbors=20,
+                    n_components = 10, # needs change to num eigencectors
+                    sigma=0.3)
+
+  # Fit vector field to the points Z
+  SwissRoll_lxai.fit(Z)</code></pre>
     </div>
 
     <h2 id="results">Results</h2>
@@ -179,17 +281,15 @@ SwissRoll_lxai.fit(Z)</code></pre>
     </p>
     <div class="code-block-wrapper">
       <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
-      <pre><code><span class="tok-kw">import</span> matplotlib.pyplot <span class="tok-kw">as</span> plt
-
-<span class="tok-cm"># Plot the eigenvalue spectrum</span>
-plt.figure(figsize<span class="tok-op">=</span>(<span class="tok-num">7</span>, <span class="tok-num">7</span>))
-plt.plot(range(<span class="tok-num">1</span>, <span class="tok-num">8</span>), SwissRoll_lxai.eigenvalues_[:<span class="tok-num">7</span>], <span class="tok-str">'-o'</span>)
-ax <span class="tok-op">=</span> plt.gca()
-ax.xaxis.set_major_locator(plt.MaxNLocator(integer<span class="tok-op">=</span><span class="tok-cls">True</span>))
-plt.xlabel(<span class="tok-str">'lowest ordering'</span>)
-plt.ylabel(<span class="tok-str">'Eigenvalues'</span>)
-plt.tight_layout()
-plt.show()</code></pre>
+      <pre><code>plt.figure(figsize=(7,7))
+    #plt.title("Smallest Eigenvalues of \n the Connection Laplacian")
+    plt.plot(range(1,8),SwissRoll_lxai.eigenvalues_[:7],'-o')
+    ax = plt.gca() # Get current axis
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+    plt.xlabel('lowest ordering')
+    plt.ylabel('Eigenvalues')
+    plt.tight_layout()
+    plt.savefig('plots/Swiss_roll_spectrum.png', transparent=True)</code></pre>
     </div>
     <p>
       Two near-zero eigenvalues followed by a clear spectral gap confirm that the manifold has
@@ -200,19 +300,54 @@ plt.show()</code></pre>
     <h3 id="visualise">Visualise Vector Fields</h3>
     <div class="code-block-wrapper">
       <div class="code-block-header"><span class="code-lang-badge">python</span><button class="copy-btn">⧉ Copy</button></div>
-      <pre><code><span class="tok-kw">from</span> latentxai.plotting <span class="tok-kw">import</span> plot_flow
+      <pre><code>print("Projecting Field 1...")
+  v1_latent = SwissRoll_lxai.project_fields_to_latent(torch.tensor(Z).to(device), SwissRoll_lxai.PVF_on_X_[0])
 
-<span class="tok-cm"># Project fields back to latent space (handles numpy directly)</span>
-v1_latent <span class="tok-op">=</span> SwissRoll_lxai.project_fields_to_latent(
-    torch.tensor(Z).to(<span class="tok-str">'cuda'</span>), SwissRoll_lxai.PVF_on_X_[<span class="tok-num">0</span>]
-)
-v2_latent <span class="tok-op">=</span> SwissRoll_lxai.project_fields_to_latent(
-    torch.tensor(Z).to(<span class="tok-str">'cuda'</span>), SwissRoll_lxai.PVF_on_X_[<span class="tok-num">1</span>]
-)
+  print("Projecting Field 2...")
+  v2_latent = SwissRoll_lxai.project_fields_to_latent(torch.tensor(Z).to(device), SwissRoll_lxai.PVF_on_X_[1]) 
 
-<span class="tok-cm"># Visualise the fields in 2D latent space</span>
-<span class="tok-cm"># (assuming a custom visualise_latent_fields function like in the notebook)</span>
-visualize_latent_fields(Z, v1_latent, v2_latent, t_labels<span class="tok-op">=</span>t)</code></pre>
+  def visualize_latent_fields(z_points, V1_lat, V2_lat, t_labels, subsample_n=400):
+    """
+    Visualizes the projected vector fields in the 2D Latent Space.
+    """
+    # Convert to Numpy
+    if torch.is_tensor(z_points): z_points = z_points.cpu().detach().numpy()
+    if torch.is_tensor(V1_lat): V1_lat = V1_lat.cpu().detach().numpy()
+    if torch.is_tensor(V2_lat): V2_lat = V2_lat.cpu().detach().numpy()
+    if torch.is_tensor(t_labels): t_labels = t_labels.cpu().detach().numpy()
+
+    # Subsample
+    indices = np.random.choice(z_points.shape[0], subsample_n, replace=False)
+    z_sub = z_points[indices]
+    v1_sub = V1_lat[indices]
+    v2_sub = V2_lat[indices]
+    
+    # Normalize lengths for cleaner visualization (we care about direction)
+    v1_sub = v1_sub / (np.linalg.norm(v1_sub, axis=1, keepdims=True) + 1e-9)
+    v2_sub = v2_sub / (np.linalg.norm(v2_sub, axis=1, keepdims=True) + 1e-9)
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+    
+    # Plot background points colored by Time/Length
+    scatter = ax.scatter(z_points[:, 0], z_points[:, 1], c=t_labels, cmap='viridis', s=2, alpha=0.3)
+    
+    # Plot Field 1 (Black - Length)
+    ax.quiver(z_sub[:, 0], z_sub[:, 1], v1_sub[:, 0], v1_sub[:, 1], 
+          color='black', scale=25, width=0.003, label='Field 1 (Length)')
+    
+    # Plot Field 2 (Red - Width)
+    ax.quiver(z_sub[:, 0], z_sub[:, 1], v2_sub[:, 0], v2_sub[:, 1], 
+          color='red', scale=25, width=0.003, label='Field 2 (Width)')
+    
+    #ax.set_title("The 'Pullback' Fields in Latent Space")
+    ax.set_xlabel("z1")
+    ax.set_ylabel("z2")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    plt.savefig('plots/SwissRoll_VectorFields.png', transparent=True)
+    plt.show()
+
+  visualize_latent_fields(mu, v1_latent, v2_latent, color)</code></pre>
     </div>
 
     <h2 id="hyperparameter-sensitivity">Hyperparameter Sensitivity</h2>
